@@ -63,6 +63,8 @@ func (sck *Socket) isZero() bool {
 }
 
 func main() {
+	verbose := flag.Bool("v", false, "enable verbose mode")
+
 	flag.Parse()
 
 	if len(flag.Args()) == 0 {
@@ -70,10 +72,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	run()
+	run(*verbose)
 }
 
-func run() {
+func run(verbose bool) {
 	fname := flag.Arg(0)
 	f, err := os.Open(fname)
 	if err != nil {
@@ -91,7 +93,9 @@ func run() {
 	devices := append([]Device(nil), cfg.Options.Devices...)
 	if !cfg.Options.Device.isZero() {
 		allgood = false
-		log.Printf("%s: use of \"device\" keyword\n", fname)
+		if verbose {
+			log.Printf("%s: use of \"device\" keyword\n", fname)
+		}
 		devices = append(devices, cfg.Options.Device)
 	}
 
@@ -99,7 +103,9 @@ func run() {
 		chans := append([]Channel(nil), dev.Channels...)
 		if !dev.Channel.isZero() {
 			allgood = false
-			log.Printf("%s: use of \"channel\" keyword (device=%q)\n", fname, dev.name())
+			if verbose {
+				log.Printf("%s: use of \"channel\" keyword (device=%q)\n", fname, dev.name())
+			}
 			chans = append(chans, dev.Channel)
 		}
 
@@ -107,7 +113,9 @@ func run() {
 			//sockets := append([]Socket(nil), dev.Sockets...)
 			if !ch.Socket.isZero() {
 				allgood = false
-				log.Printf("%s: use of \"socket\" keyword (device=%q)\n", fname, dev.name()+"."+ch.Name)
+				if verbose {
+					log.Printf("%s: use of \"socket\" keyword (device=%q)\n", fname, dev.name()+"."+ch.Name)
+				}
 				//sockets = append(sockets, ch.Socket)
 			}
 		}

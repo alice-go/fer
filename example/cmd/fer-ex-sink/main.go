@@ -21,8 +21,8 @@ func (dev *Device) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *Device) Init(ctrl fer.Controler) error {
-	datac, err := ctrl.Chan("data2", 0)
+func (dev *Device) Init(ctl fer.Controler) error {
+	datac, err := ctl.Chan("data2", 0)
 	if err != nil {
 		return err
 	}
@@ -31,23 +31,23 @@ func (dev *Device) Init(ctrl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Run(ctrl fer.Controler) error {
+func (dev *Device) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.datac:
 			log.Printf("received: %q\n", string(data.Data))
-		case <-ctrl.Done():
+		case <-ctl.Done():
 			return nil
 		}
 	}
 	return nil
 }
 
-func (dev *Device) Pause(ctrl fer.Controler) error {
+func (dev *Device) Pause(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Reset(ctrl fer.Controler) error {
+func (dev *Device) Reset(ctl fer.Controler) error {
 	return nil
 }
 

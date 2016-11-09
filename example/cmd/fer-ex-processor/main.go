@@ -22,13 +22,13 @@ func (dev *Device) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *Device) Init(ctrl fer.Controler) error {
-	idatac, err := ctrl.Chan("data1", 0)
+func (dev *Device) Init(ctl fer.Controler) error {
+	idatac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
 	}
 
-	odatac, err := ctrl.Chan("data2", 0)
+	odatac, err := ctl.Chan("data2", 0)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func (dev *Device) Init(ctrl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Run(ctrl fer.Controler) error {
+func (dev *Device) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.idatac:
@@ -46,18 +46,18 @@ func (dev *Device) Run(ctrl fer.Controler) error {
 			out := append([]byte(nil), data.Data...)
 			out = append(out, []byte(" (modified by "+dev.cfg.ID+")")...)
 			dev.odatac <- fer.Msg{Data: out}
-		case <-ctrl.Done():
+		case <-ctl.Done():
 			return nil
 		}
 	}
 	return nil
 }
 
-func (dev *Device) Pause(ctrl fer.Controler) error {
+func (dev *Device) Pause(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Reset(ctrl fer.Controler) error {
+func (dev *Device) Reset(ctl fer.Controler) error {
 	return nil
 }
 

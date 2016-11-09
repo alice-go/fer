@@ -43,8 +43,8 @@ func Parse() (Config, error) {
 
 type Config struct {
 	Options   Options `json:"fairMQOptions"`
-	ID        string  `json:"fer_id"`
-	Transport string  `json:"fer_transport"` // zeromq, nanomsg, chan
+	ID        string  `json:"fer_id,omitempty"`
+	Transport string  `json:"fer_transport,omitempty"` // zeromq, nanomsg, chan
 }
 
 type Options struct {

@@ -22,9 +22,9 @@ type Options struct {
 }
 
 type Device struct {
-	ID       string    `json:"id,omitempty"`
-	Key      string    `json:"key,omitempty"`
-	Channels []Channel `json:"channels,omitempty"`
+	ID       string    `json:"id"`
+	Key      string    `json:"key"`
+	Channels []Channel `json:"channels"`
 	Channel  Channel   `json:"channel"`
 }
 
@@ -41,7 +41,7 @@ func (dev *Device) name() string {
 
 type Channel struct {
 	Name    string   `json:"name"`
-	Sockets []Socket `json:"sockets,omitempty"`
+	Sockets []Socket `json:"sockets"`
 	Socket  Socket   `json:"socket"`
 }
 

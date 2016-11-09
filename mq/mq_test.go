@@ -17,6 +17,7 @@ func TestPushPullNN(t *testing.T) {
 	const (
 		N    = 5
 		tmpl = "data-%02d"
+		port = "6666"
 	)
 
 	drv, err := mq.Open("nanomsg")
@@ -36,7 +37,7 @@ func TestPushPullNN(t *testing.T) {
 	defer push.Close()
 
 	go func() {
-		err := push.Dial("tcp://localhost:5555")
+		err := push.Dial("tcp://localhost:" + port)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -52,7 +53,7 @@ func TestPushPullNN(t *testing.T) {
 		}
 	}()
 
-	err = pull.Listen("tcp://*:5555")
+	err = pull.Listen("tcp://*:" + port)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,6 +76,7 @@ func TestPushPullZMQ(t *testing.T) {
 	const (
 		N    = 5
 		tmpl = "data-%02d"
+		port = "5555"
 	)
 
 	drv, err := mq.Open("zeromq")
@@ -94,7 +96,7 @@ func TestPushPullZMQ(t *testing.T) {
 	defer push.Close()
 
 	go func() {
-		err := push.Dial("tcp://localhost:5555")
+		err := push.Dial("tcp://localhost:" + port)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,7 +112,7 @@ func TestPushPullZMQ(t *testing.T) {
 		}
 	}()
 
-	err = pull.Listen("tcp://*:5555")
+	err = pull.Listen("tcp://*:" + port)
 	if err != nil {
 		t.Fatal(err)
 	}

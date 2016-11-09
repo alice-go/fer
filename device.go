@@ -188,12 +188,7 @@ func Main(dev Device) error {
 		return err
 	}
 
-	drvName := cfg.Transport
-	if drvName == "" {
-		drvName = "zeromq"
-	}
-
-	drv, err := mq.Open(drvName)
+	drv, err := mq.Open(cfg.Transport)
 	if err != nil {
 		return err
 	}

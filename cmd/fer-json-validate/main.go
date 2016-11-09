@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// fer-validate-json validates JSON configuration files honor FairMQ's JSON schema.
+// fer-json-validate validates JSON configuration files honor FairMQ's JSON schema.
 package main
 
 import (
@@ -139,6 +139,9 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	log.SetPrefix("fer-json-validate: ")
+	log.SetFlags(0)
 
 	validate(*verbose)
 	// run(*verbose)

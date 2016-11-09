@@ -112,7 +112,7 @@ func (dev *Device) UnmarshalJSON(data []byte) error {
 
 type Channel struct {
 	Name    string   `json:"name"`
-	Sockets []Socket `json:"socket"`
+	Sockets []Socket `json:"sockets"`
 }
 
 func (ch Channel) isZero() bool {

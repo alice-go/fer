@@ -11,8 +11,8 @@ import (
 
 	"github.com/sbinet-alice/fer/config"
 	"github.com/sbinet-alice/fer/mq"
-	_ "github.com/sbinet-alice/fer/mq/nanomsg"
-	_ "github.com/sbinet-alice/fer/mq/zeromq"
+	_ "github.com/sbinet-alice/fer/mq/nanomsg" // load nanomsg plugin
+	_ "github.com/sbinet-alice/fer/mq/zeromq"  // load zeromq plugin
 )
 
 type channel struct {
@@ -159,10 +159,10 @@ func (dev *device) run() {
 
 type Device interface {
 	Configure(cfg config.Device) error
-	Init(ctrl Controler) error
-	Run(ctrl Controler) error
-	Pause(ctrl Controler) error
-	Reset(ctrl Controler) error
+	Init(ctl Controler) error
+	Run(ctl Controler) error
+	Pause(ctl Controler) error
+	Reset(ctl Controler) error
 }
 
 type Controler interface {

@@ -121,9 +121,9 @@ type socket struct {
 	Type        string `json:"type,omitempty"`
 	Method      string `json:"method,omitempty"`
 	Address     string `json:"address,omitempty"`
-	SendBufSize string `json:"sndBufSize,omitempty"`
-	RecvBufSize string `json:"rcvBufSize,omitempty"`
-	RateLogging string `json:"rateLogging,omitempty"`
+	SendBufSize int    `json:"sndBufSize,omitempty"`
+	RecvBufSize int    `json:"rcvBufSize,omitempty"`
+	RateLogging int    `json:"rateLogging,omitempty"`
 }
 
 func (sck *socket) isZero() bool {
@@ -143,8 +143,8 @@ func main() {
 	log.SetPrefix("fer-json-validate: ")
 	log.SetFlags(0)
 
-	validate(*verbose)
-	// run(*verbose)
+	// validate(*verbose)
+	run(*verbose)
 }
 
 func run(verbose bool) {
@@ -210,11 +210,11 @@ func validate(verbose bool) {
 	var cfg config
 	err = json.NewDecoder(f).Decode(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error decoding [%s]: %v\n", fname, err)
 	}
 	err = json.NewEncoder(w).Encode(cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error encoding [%s]: %v\n", fname, err)
 	}
 
 	chk := linearize(w)

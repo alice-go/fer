@@ -39,7 +39,6 @@ func (dev *Device) Run(ctl fer.Controler) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (dev *Device) Pause(ctl fer.Controler) error {

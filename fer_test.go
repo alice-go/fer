@@ -43,7 +43,6 @@ func (dev *sampler) Run(ctl Controler) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (dev *sampler) Pause(ctl Controler) error {
@@ -93,7 +92,6 @@ func (dev *processor) Run(ctl Controler) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (dev *processor) Pause(ctl Controler) error {
@@ -133,7 +131,6 @@ func (dev *sink) Run(ctl Controler) error {
 			return nil
 		}
 	}
-	return nil
 }
 
 func (dev *sink) Pause(ctl Controler) error {

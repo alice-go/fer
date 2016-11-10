@@ -41,16 +41,19 @@ func Parse() (Config, error) {
 	return cfg, err
 }
 
+// Config holds the configuration of a Fer program.
 type Config struct {
 	Options   Options `json:"fairMQOptions"`
 	ID        string  `json:"fer_id,omitempty"`
 	Transport string  `json:"fer_transport,omitempty"` // zeromq, nanomsg, chan
 }
 
+// Options holds the configuration of a Fer MQ program.
 type Options struct {
 	Devices []Device `json:"devices"`
 }
 
+// Device returns the configuration of a device by name.
 func (opts Options) Device(name string) (Device, bool) {
 	for _, dev := range opts.Devices {
 		if dev.ID == name {
@@ -60,6 +63,7 @@ func (opts Options) Device(name string) (Device, bool) {
 	return Device{}, false
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (opts *Options) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		Device  Device   `json:"device"`
@@ -77,6 +81,7 @@ func (opts *Options) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Device holds the configuration of a device.
 type Device struct {
 	ID       string    `json:"id"`
 	Channels []Channel `json:"channels"`
@@ -86,6 +91,7 @@ func (dev Device) isZero() bool {
 	return dev.ID == "" && len(dev.Channels) == 0
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (dev *Device) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		ID       string    `json:"id"`
@@ -110,6 +116,7 @@ func (dev *Device) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Channel holds the configuration of a channel.
 type Channel struct {
 	Name    string   `json:"name"`
 	Sockets []Socket `json:"sockets"`
@@ -119,6 +126,7 @@ func (ch Channel) isZero() bool {
 	return ch.Name == "" && len(ch.Sockets) == 0
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (ch *Channel) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		Name    string   `json:"name"`
@@ -139,15 +147,17 @@ func (ch *Channel) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Socket holds the configuration of a socket.
 type Socket struct {
-	Type        string `json:"type"`
-	Method      string `json:"method"`
-	Address     string `json:"address"`
+	Type        string `json:"type"`    // Type is the type of a Socket (PUB/SUB/PUSH/PULL/...)
+	Method      string `json:"method"`  // Method to operate the socket (connect/bind)
+	Address     string `json:"address"` // Address is the socket end-point
 	SendBufSize int    `json:"sndBufSize"`
 	RecvBufSize int    `json:"rcvBufSize"`
 	RateLogging int    `json:"rateLogging"`
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface.
 func (sck *Socket) UnmarshalJSON(data []byte) error {
 	var raw struct {
 		Type        string `json:"type"`

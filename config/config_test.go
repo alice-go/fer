@@ -17,63 +17,63 @@ var data = map[string][]byte{
         "devices":
         [{
             "id": "sampler1",
-            "channel":
-            {
+            "channels":
+            [{
                 "name": "data1",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "push",
                     "method": "bind",
                     "address": "tcp://*:5555",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
-            }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
+            }]
         },
         {
             "key": "processor",
             "channels":
             [{
                 "name": "data1",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "pull",
                     "method": "connect",
                     "address": "tcp://localhost:5555",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
             },
             {
                 "name": "data2",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "push",
                     "method": "connect",
                     "address": "tcp://localhost:5556",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
             }]
         },
         {
             "id": "sink1",
-            "channel":
-            {
+            "channels":
+            [{
                 "name": "data2",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "pull",
                     "method": "bind",
                     "address": "tcp://*:5556",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
-            }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
+            }]
         }]
     }
 }
@@ -81,85 +81,79 @@ var data = map[string][]byte{
 	"examples/MQ/6-multiple-channels/ex6-multiple-channels.json": []byte(`{
     "fairMQOptions":
     {
-        "device":
-        {
+        "devices":
+        [{
             "id": "sampler1",
-            "channel":
-            {
+            "channels":
+            [{
                 "name": "data",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "push",
                     "method": "bind",
                     "address": "tcp://*:5555",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
             },
-            "channel":
             {
                 "name": "broadcast",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "sub",
                     "method": "connect",
                     "address": "tcp://localhost:5005",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
-            }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
+            }]
         },
-
-        "device":
         {
             "id": "sink1",
-            "channel":
-            {
+            "channels":
+            [{
                 "name": "data",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "pull",
                     "method": "connect",
                     "address": "tcp://localhost:5555",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
             },
-            "channel":
             {
                 "name": "broadcast",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "sub",
                     "method": "connect",
                     "address": "tcp://localhost:5005",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
-            }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
+            }]
         },
-
-        "device":
         {
             "id": "broadcaster1",
-            "channel":
-            {
+            "channels":
+            [{
                 "name": "broadcast",
-                "socket":
-                {
+                "sockets":
+                [{
                     "type": "pub",
                     "method": "bind",
                     "address": "tcp://*:5005",
-                    "sndBufSize": "1000",
-                    "rcvBufSize": "1000",
-                    "rateLogging": "0"
-                }
-            }
-        }
+                    "sndBufSize": 1000,
+                    "rcvBufSize": 1000,
+                    "rateLogging": 0
+                }]
+            }]
+        }]
     }
 }`),
 	"multi-sockets-with-defaults.json": []byte(`{

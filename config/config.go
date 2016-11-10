@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"flag"
 	"os"
-	"strconv"
 )
 
 // Parse parses the command-line flags from os.Args[1:]. Must be called after
@@ -83,8 +82,17 @@ func (opts *Options) UnmarshalJSON(data []byte) error {
 
 // Device holds the configuration of a device.
 type Device struct {
-	ID       string    `json:"id"`
+	Doc      string    `json:"_______COMMENT:,omitempty"`
+	ID       string    `json:"id,omitempty"`
+	Key      string    `json:"key,omitempty"`
 	Channels []Channel `json:"channels"`
+}
+
+func (dev Device) Name() string {
+	if dev.Key != "" {
+		return dev.Key
+	}
+	return dev.ID
 }
 
 func (dev Device) isZero() bool {
@@ -94,6 +102,7 @@ func (dev Device) isZero() bool {
 // UnmarshalJSON implements the json.Unmarshaler interface.
 func (dev *Device) UnmarshalJSON(data []byte) error {
 	var raw struct {
+		Doc      string    `json:"_______COMMENT:,omitempty"`
 		ID       string    `json:"id"`
 		Key      string    `json:"key"`
 		Channel  Channel   `json:"channel"`
@@ -104,10 +113,9 @@ func (dev *Device) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	dev.Doc = raw.Doc
 	dev.ID = raw.ID
-	if raw.ID == "" && raw.Key != "" {
-		dev.ID = raw.Key
-	}
+	dev.Key = raw.Key
 	dev.Channels = dev.Channels[:0]
 	if !raw.Channel.isZero() {
 		dev.Channels = append(dev.Channels, raw.Channel)
@@ -119,7 +127,14 @@ func (dev *Device) UnmarshalJSON(data []byte) error {
 // Channel holds the configuration of a channel.
 type Channel struct {
 	Name    string   `json:"name"`
-	Sockets []Socket `json:"sockets"`
+	Sockets []Socket `json:"sockets,omitempty"`
+
+	Type        string `json:"type,omitempty"`    // Type is the type of a Socket (PUB/SUB/PUSH/PULL/...)
+	Method      string `json:"method,omitempty"`  // Method to operate the socket (connect/bind)
+	Address     string `json:"address,omitempty"` // Address is the socket end-point
+	SendBufSize int    `json:"sndBufSize,omitempty"`
+	RecvBufSize int    `json:"rcvBufSize,omitempty"`
+	RateLogging int    `json:"rateLogging,omitempty"`
 }
 
 func (ch Channel) isZero() bool {
@@ -132,6 +147,13 @@ func (ch *Channel) UnmarshalJSON(data []byte) error {
 		Name    string   `json:"name"`
 		Socket  Socket   `json:"socket"`
 		Sockets []Socket `json:"sockets"`
+
+		Type        string `json:"type,omitempty"`    // Type is the type of a Socket (PUB/SUB/PUSH/PULL/...)
+		Method      string `json:"method,omitempty"`  // Method to operate the socket (connect/bind)
+		Address     string `json:"address,omitempty"` // Address is the socket end-point
+		SendBufSize int    `json:"sndBufSize,omitempty"`
+		RecvBufSize int    `json:"rcvBufSize,omitempty"`
+		RateLogging int    `json:"rateLogging,omitempty"`
 	}
 
 	err := json.Unmarshal(data, &raw)
@@ -144,6 +166,13 @@ func (ch *Channel) UnmarshalJSON(data []byte) error {
 		ch.Sockets = append(ch.Sockets, raw.Socket)
 	}
 	ch.Sockets = append(ch.Sockets, raw.Sockets...)
+
+	ch.Type = raw.Type
+	ch.Method = raw.Method
+	ch.Address = raw.Address
+	ch.SendBufSize = raw.SendBufSize
+	ch.RecvBufSize = raw.RecvBufSize
+	ch.RateLogging = raw.RateLogging
 	return nil
 }
 
@@ -163,9 +192,9 @@ func (sck *Socket) UnmarshalJSON(data []byte) error {
 		Type        string `json:"type"`
 		Method      string `json:"method"`
 		Address     string `json:"address"`
-		SendBufSize string `json:"sndBufSize"`
-		RecvBufSize string `json:"rcvBufSize"`
-		RateLogging string `json:"rateLogging"`
+		SendBufSize int    `json:"sndBufSize"`
+		RecvBufSize int    `json:"rcvBufSize"`
+		RateLogging int    `json:"rateLogging"`
 	}
 
 	err := json.Unmarshal(data, &raw)
@@ -176,25 +205,17 @@ func (sck *Socket) UnmarshalJSON(data []byte) error {
 	sck.Type = raw.Type
 	sck.Method = raw.Method
 	sck.Address = raw.Address
-	strFunc := func(v *string, def string) {
-		if *v == "" {
-			*v = def
-		}
+	sck.SendBufSize = raw.SendBufSize
+	sck.RecvBufSize = raw.RecvBufSize
+	sck.RateLogging = raw.RateLogging
+
+	if sck.SendBufSize == 0 {
+		sck.SendBufSize = 1000
 	}
-	strFunc(&raw.SendBufSize, "1000")
-	sck.SendBufSize, err = strconv.Atoi(raw.SendBufSize)
-	if err != nil {
-		return err
+
+	if sck.RecvBufSize == 0 {
+		sck.RecvBufSize = 1000
 	}
-	strFunc(&raw.RecvBufSize, "1000")
-	sck.RecvBufSize, err = strconv.Atoi(raw.RecvBufSize)
-	if err != nil {
-		return err
-	}
-	strFunc(&raw.RateLogging, "0")
-	sck.RateLogging, err = strconv.Atoi(raw.RateLogging)
-	if err != nil {
-		return err
-	}
+
 	return nil
 }

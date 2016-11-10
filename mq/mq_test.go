@@ -6,6 +6,7 @@ package mq_test
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/sbinet-alice/fer/mq"
@@ -57,6 +58,8 @@ func TestPushPullNN(t *testing.T) {
 	}
 	defer push.Close()
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
 		err := push.Dial("tcp://localhost:" + port)
 		if err != nil {
@@ -72,6 +75,7 @@ func TestPushPullNN(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		wg.Done()
 	}()
 
 	err = pull.Listen("tcp://*:" + port)
@@ -91,6 +95,7 @@ func TestPushPullNN(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	wg.Wait()
 }
 
 func TestPushPullZMQ(t *testing.T) {
@@ -116,6 +121,8 @@ func TestPushPullZMQ(t *testing.T) {
 	}
 	defer push.Close()
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
 		err := push.Dial("tcp://localhost:" + port)
 		if err != nil {
@@ -131,6 +138,7 @@ func TestPushPullZMQ(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		wg.Done()
 	}()
 
 	err = pull.Listen("tcp://*:" + port)
@@ -146,4 +154,9 @@ func TestPushPullZMQ(t *testing.T) {
 			t.Errorf("push-pull[%d]: got=%q want=%q\n", i, got, want)
 		}
 	}
+	err = pull.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
 }

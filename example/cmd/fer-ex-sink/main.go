@@ -11,17 +11,17 @@ import (
 	"github.com/sbinet-alice/fer/config"
 )
 
-type Device struct {
+type sink struct {
 	cfg   config.Device
 	datac chan fer.Msg
 }
 
-func (dev *Device) Configure(cfg config.Device) error {
+func (dev *sink) Configure(cfg config.Device) error {
 	dev.cfg = cfg
 	return nil
 }
 
-func (dev *Device) Init(ctl fer.Controler) error {
+func (dev *sink) Init(ctl fer.Controler) error {
 	datac, err := ctl.Chan("data2", 0)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (dev *Device) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Run(ctl fer.Controler) error {
+func (dev *sink) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.datac:
@@ -42,16 +42,16 @@ func (dev *Device) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *Device) Pause(ctl fer.Controler) error {
+func (dev *sink) Pause(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Reset(ctl fer.Controler) error {
+func (dev *sink) Reset(ctl fer.Controler) error {
 	return nil
 }
 
 func main() {
-	err := fer.Main(&Device{})
+	err := fer.Main(&sink{})
 	if err != nil {
 		log.Fatal(err)
 	}

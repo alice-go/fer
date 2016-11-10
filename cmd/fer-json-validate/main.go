@@ -16,56 +16,56 @@ import (
 	"reflect"
 )
 
-type Config struct {
-	Options Options `json:"fairMQOptions"`
+type config struct {
+	Options options `json:"fairMQOptions"`
 }
 
-type Options struct {
-	Devices []Device `json:"devices,omitempty"`
-	Device  Device   `json:"device"`
+type options struct {
+	Devices []device `json:"devices,omitempty"`
+	Device  device   `json:"device"`
 }
 
-func (opts Options) MarshalJSON() ([]byte, error) {
+func (opts options) MarshalJSON() ([]byte, error) {
 	if opts.Device.isZero() {
 		return json.Marshal(struct {
-			Devices []Device `json:"devices"`
+			Devices []device `json:"devices"`
 		}{
 			Devices: opts.Devices,
 		})
 	}
 	return json.Marshal(struct {
-		Devices []Device `json:"devices,omitempty"`
-		Device  Device   `json:"device"`
+		Devices []device `json:"devices,omitempty"`
+		Device  device   `json:"device"`
 	}{
 		Devices: opts.Devices,
 		Device:  opts.Device,
 	})
 }
 
-type Device struct {
+type device struct {
 	ID       string    `json:"id,omitempty"`
 	Key      string    `json:"key,omitempty"`
-	Channels []Channel `json:"channels,omitempty"`
-	Channel  Channel   `json:"channel"`
+	Channels []channel `json:"channels,omitempty"`
+	Channel  channel   `json:"channel"`
 }
 
-func (dev *Device) isZero() bool {
+func (dev *device) isZero() bool {
 	return dev.ID == "" && dev.Key == "" && len(dev.Channels) == 0
 }
 
-func (dev *Device) name() string {
+func (dev *device) name() string {
 	if dev.ID != "" {
 		return dev.ID
 	}
 	return dev.Key
 }
 
-func (dev Device) MarshalJSON() ([]byte, error) {
+func (dev device) MarshalJSON() ([]byte, error) {
 	if dev.Channel.isZero() {
 		return json.Marshal(struct {
 			ID       string    `json:"id,omitempty"`
 			Key      string    `json:"key,omitempty"`
-			Channels []Channel `json:"channels,omitempty"`
+			Channels []channel `json:"channels,omitempty"`
 		}{
 			ID:       dev.ID,
 			Key:      dev.Key,
@@ -75,8 +75,8 @@ func (dev Device) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		ID       string    `json:"id,omitempty"`
 		Key      string    `json:"key,omitempty"`
-		Channels []Channel `json:"channels,omitempty"`
-		Channel  Channel   `json:"channel"`
+		Channels []channel `json:"channels,omitempty"`
+		Channel  channel   `json:"channel"`
 	}{
 		ID:       dev.ID,
 		Key:      dev.Key,
@@ -85,17 +85,17 @@ func (dev Device) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type Channel struct {
+type channel struct {
 	Name    string   `json:"name"`
-	Sockets []Socket `json:"sockets,omitempty"`
-	Socket  Socket   `json:"socket"`
+	Sockets []socket `json:"sockets,omitempty"`
+	Socket  socket   `json:"socket"`
 }
 
-func (ch *Channel) MarshalJSON() ([]byte, error) {
+func (ch *channel) MarshalJSON() ([]byte, error) {
 	if ch.Socket.isZero() {
 		return json.Marshal(struct {
 			Name    string   `json:"name"`
-			Sockets []Socket `json:"sockets,omitempty"`
+			Sockets []socket `json:"sockets,omitempty"`
 		}{
 			Name:    ch.Name,
 			Sockets: ch.Sockets,
@@ -104,8 +104,8 @@ func (ch *Channel) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(struct {
 		Name    string   `json:"name"`
-		Sockets []Socket `json:"sockets,omitempty"`
-		Socket  Socket   `json:"socket"`
+		Sockets []socket `json:"sockets,omitempty"`
+		Socket  socket   `json:"socket"`
 	}{
 		Name:    ch.Name,
 		Sockets: ch.Sockets,
@@ -113,11 +113,11 @@ func (ch *Channel) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (ch *Channel) isZero() bool {
+func (ch *channel) isZero() bool {
 	return ch.Name == ""
 }
 
-type Socket struct {
+type socket struct {
 	Type        string `json:"type,omitempty"`
 	Method      string `json:"method,omitempty"`
 	Address     string `json:"address,omitempty"`
@@ -126,8 +126,8 @@ type Socket struct {
 	RateLogging string `json:"rateLogging,omitempty"`
 }
 
-func (sck *Socket) isZero() bool {
-	return *sck == Socket{}
+func (sck *socket) isZero() bool {
+	return *sck == socket{}
 }
 
 func main() {
@@ -155,14 +155,14 @@ func run(verbose bool) {
 	}
 	defer f.Close()
 
-	var cfg Config
+	var cfg config
 	err = json.NewDecoder(f).Decode(&cfg)
 	if err != nil {
 		log.Fatalf("error parsing [%s]: %v\n", fname, err)
 	}
 
 	allgood := true
-	devices := append([]Device(nil), cfg.Options.Devices...)
+	devices := append([]device(nil), cfg.Options.Devices...)
 	if !cfg.Options.Device.isZero() {
 		allgood = false
 		if verbose {
@@ -172,7 +172,7 @@ func run(verbose bool) {
 	}
 
 	for _, dev := range devices {
-		chans := append([]Channel(nil), dev.Channels...)
+		chans := append([]channel(nil), dev.Channels...)
 		if !dev.Channel.isZero() {
 			allgood = false
 			if verbose {
@@ -207,7 +207,7 @@ func validate(verbose bool) {
 	defer f.Close()
 
 	w := new(bytes.Buffer)
-	var cfg Config
+	var cfg config
 	err = json.NewDecoder(f).Decode(&cfg)
 	if err != nil {
 		log.Fatal(err)

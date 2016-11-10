@@ -11,18 +11,18 @@ import (
 	"github.com/sbinet-alice/fer/config"
 )
 
-type Device struct {
+type processor struct {
 	cfg    config.Device
 	idatac chan fer.Msg
 	odatac chan fer.Msg
 }
 
-func (dev *Device) Configure(cfg config.Device) error {
+func (dev *processor) Configure(cfg config.Device) error {
 	dev.cfg = cfg
 	return nil
 }
 
-func (dev *Device) Init(ctl fer.Controler) error {
+func (dev *processor) Init(ctl fer.Controler) error {
 	idatac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (dev *Device) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Run(ctl fer.Controler) error {
+func (dev *processor) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.idatac:
@@ -52,16 +52,16 @@ func (dev *Device) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *Device) Pause(ctl fer.Controler) error {
+func (dev *processor) Pause(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Reset(ctl fer.Controler) error {
+func (dev *processor) Reset(ctl fer.Controler) error {
 	return nil
 }
 
 func main() {
-	err := fer.Main(&Device{})
+	err := fer.Main(&processor{})
 	if err != nil {
 		log.Fatal(err)
 	}

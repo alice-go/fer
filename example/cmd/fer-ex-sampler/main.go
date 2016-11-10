@@ -11,17 +11,17 @@ import (
 	"github.com/sbinet-alice/fer/config"
 )
 
-type Device struct {
+type sampler struct {
 	cfg   config.Device
 	datac chan fer.Msg
 }
 
-func (dev *Device) Configure(cfg config.Device) error {
+func (dev *sampler) Configure(cfg config.Device) error {
 	dev.cfg = cfg
 	return nil
 }
 
-func (dev *Device) Init(ctl fer.Controler) error {
+func (dev *sampler) Init(ctl fer.Controler) error {
 	datac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (dev *Device) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Run(ctl fer.Controler) error {
+func (dev *sampler) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case dev.datac <- fer.Msg{Data: []byte("HELLO")}:
@@ -41,16 +41,16 @@ func (dev *Device) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *Device) Pause(ctl fer.Controler) error {
+func (dev *sampler) Pause(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *Device) Reset(ctl fer.Controler) error {
+func (dev *sampler) Reset(ctl fer.Controler) error {
 	return nil
 }
 
 func main() {
-	err := fer.Main(&Device{})
+	err := fer.Main(&sampler{})
 	if err != nil {
 		log.Fatal(err)
 	}

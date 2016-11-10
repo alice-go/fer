@@ -5,6 +5,7 @@
 package fer
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -35,7 +36,7 @@ func (ch *channel) Recv() ([]byte, error) {
 	return ch.sck.Recv()
 }
 
-func (ch *channel) run() {
+func (ch *channel) run(ctx context.Context) {
 	for {
 		select {
 		case msg := <-ch.msg:
@@ -121,7 +122,7 @@ func (dev *device) Done() chan Cmd {
 
 func (dev *device) isControler() {}
 
-func (dev *device) run() {
+func (dev *device) run(ctx context.Context) {
 	for n, chans := range dev.chans {
 		log.Printf("--- init channels [%s]...\n", n)
 		for i, ch := range chans {
@@ -151,7 +152,7 @@ func (dev *device) run() {
 	for n, chans := range dev.chans {
 		log.Printf("--- start channels [%s]...\n", n)
 		for i := range chans {
-			go chans[i].run()
+			go chans[i].run(ctx)
 		}
 	}
 
@@ -201,6 +202,8 @@ type Msg struct {
 
 // Main configures and runs a device's execution, managing its state.
 func Main(dev Device) error {
+	ctx := context.Background()
+
 	cfg, err := config.Parse()
 	if err != nil {
 		return err
@@ -227,7 +230,7 @@ func Main(dev Device) error {
 		return err
 	}
 
-	go sys.run()
+	go sys.run(ctx)
 
 	err = dev.Init(sys)
 	if err != nil {

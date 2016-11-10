@@ -202,13 +202,15 @@ type Msg struct {
 
 // Main configures and runs a device's execution, managing its state.
 func Main(dev Device) error {
-	ctx := context.Background()
-
 	cfg, err := config.Parse()
 	if err != nil {
 		return err
 	}
 
+	return runDevice(context.Background(), cfg, dev)
+}
+
+func runDevice(ctx context.Context, cfg config.Config, dev Device) error {
 	drv, err := mq.Open(cfg.Transport)
 	if err != nil {
 		return err
@@ -243,13 +245,4 @@ func Main(dev Device) error {
 	}
 
 	return nil
-}
-
-func deviceConfig(name string, cfg config.Config) (config.Device, error) {
-	var (
-		dev config.Device
-		err error
-	)
-
-	return dev, err
 }

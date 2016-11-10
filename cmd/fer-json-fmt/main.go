@@ -28,7 +28,8 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("fer-json-fmt: ")
 
-	f, err := os.Open(flag.Arg(0))
+	fname := flag.Arg(0)
+	f, err := os.Open(fname)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -37,7 +38,7 @@ func main() {
 	var cfg config.Config
 	err = json.NewDecoder(f).Decode(&cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error decoding [%s]: %v\n", fname, err)
 	}
 
 	err = f.Close()
@@ -47,7 +48,7 @@ func main() {
 
 	var w io.Writer = os.Stdout
 	if *inplace {
-		f, err = os.Create(flag.Arg(0))
+		f, err = os.Create(fname)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -59,6 +60,6 @@ func main() {
 	enc.SetIndent("", strings.Repeat(" ", 4))
 	err = enc.Encode(cfg)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("error rewriting [%s]: %v\n", fname, err)
 	}
 }

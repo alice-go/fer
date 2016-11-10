@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package config implements command-line flag parsing and fer devices
+// configuration from JSON files.
 package config
 
 import (

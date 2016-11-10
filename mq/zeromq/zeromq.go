@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package zeromq implements the mq.Driver interface and allows
+// to use mq.Sockets via ZeroMQ sockets.
 package zeromq
 
 // #cgo pkg-config: libzmq

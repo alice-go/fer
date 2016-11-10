@@ -13,6 +13,27 @@ import (
 	_ "github.com/sbinet-alice/fer/mq/zeromq"
 )
 
+func TestOpen(t *testing.T) {
+	_, err := mq.Open("no-such-driver")
+	if err == nil {
+		t.Fatalf("expected a no such-driver error")
+	}
+
+	drv1, err := mq.Open("nanomsg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	drv2, err := mq.Open("nanomsg")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if drv1 != drv2 {
+		t.Fatalf("Open is not idem-potent")
+	}
+}
+
 func TestPushPullNN(t *testing.T) {
 	const (
 		N    = 5

@@ -123,6 +123,6 @@ type Driver interface {
 
 func init() {
 	drivers.Lock()
-	defer drivers.Unlock()
 	drivers.db = make(map[string]Driver)
+	drivers.Unlock()
 }

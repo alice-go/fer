@@ -18,6 +18,7 @@ import (
 	_ "github.com/sbinet-alice/fer/mq/zeromq"  // load zeromq plugin
 )
 
+// FIXME(sbinet) use a per-device stdout
 var stdout = bufio.NewWriter(os.Stdout)
 
 type channel struct {

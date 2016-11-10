@@ -6,16 +6,40 @@ package fer
 
 import (
 	"context"
+	"net"
+	"strconv"
 	"testing"
 
 	"github.com/sbinet-alice/fer/config"
 	"golang.org/x/sync/errgroup"
 )
 
-func TestSamplerProcessorSink(t *testing.T) {
+func getTCPPort() (string, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return "", err
+	}
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return "", err
+	}
+	defer l.Close()
+	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
+}
+
+func runSamplerProcessorSink(t *testing.T, transport string) {
+
+	port1, err := getTCPPort()
+	if err != nil {
+		t.Fatalf("error getting free TCP port: %v\n", err)
+	}
+	port2, err := getTCPPort()
+	if err != nil {
+		t.Fatalf("error getting free TCP port: %v\n", err)
+	}
 
 	cfg := config.Config{
-		Transport: "zeromq",
+		Transport: transport,
 		Options: config.Options{
 			Devices: []config.Device{
 				{
@@ -27,7 +51,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 								{
 									Type:    "push",
 									Method:  "bind",
-									Address: "tcp://*:5555",
+									Address: "tcp://*:" + port1,
 								},
 							},
 						},
@@ -42,7 +66,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 								{
 									Type:    "pull",
 									Method:  "connect",
-									Address: "tcp://localhost:5555",
+									Address: "tcp://localhost:" + port1,
 								},
 							},
 						},
@@ -52,7 +76,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 								{
 									Type:    "push",
 									Method:  "connect",
-									Address: "tcp://localhost:5556",
+									Address: "tcp://localhost:" + port2,
 								},
 							},
 						},
@@ -67,7 +91,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 								{
 									Type:    "pull",
 									Method:  "bind",
-									Address: "tcp://*:5556",
+									Address: "tcp://*:" + port2,
 								},
 							},
 						},
@@ -116,12 +140,15 @@ func TestSamplerProcessorSink(t *testing.T) {
 		dev3 <- 1
 	}()
 
-	err := grp.Wait()
+	err = grp.Wait()
 	if err != nil {
+		stdout.Flush()
 		t.Fatalf("unexpected error value: %v\n", err)
 	}
-	stdout.Flush()
 }
+
+func TestSamplerProcessorSinkZMQ(t *testing.T) { runSamplerProcessorSink(t, "zeromq") }
+func TestSamplerProcessorSinkNN(t *testing.T)  { runSamplerProcessorSink(t, "nanomsg") }
 
 type sampler struct {
 	cfg   config.Device

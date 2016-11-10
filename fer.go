@@ -11,14 +11,23 @@ import "fmt"
 type Cmd byte
 
 const (
+	// CmdInitDevice is the command sent to initialize a device
 	CmdInitDevice Cmd = iota
+	// CmdInitTask is the command sent to initialize the tasks of a device
 	CmdInitTask
+	// CmdRun is the command sent to run a device
 	CmdRun
+	// CmdPause is the command sent to pause the execution of a device
 	CmdPause
+	// CmdStop is the command sent to stop the execution of a device
 	CmdStop
+	// CmdResetTask is the command sent to reset the state of the tasks of a device
 	CmdResetTask
+	// CmdResetDevice is the command sent to reset the state of a device
 	CmdResetDevice
+	// CmdEnd is the command sent to end a device
 	CmdEnd
+	// CmdError is the command sent to notify of an error
 	CmdError
 )
 

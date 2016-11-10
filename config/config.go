@@ -88,6 +88,7 @@ type Device struct {
 	Channels []Channel `json:"channels"`
 }
 
+// Name returns the name of a device (either its key or its id).
 func (dev Device) Name() string {
 	if dev.Key != "" {
 		return dev.Key

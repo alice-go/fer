@@ -55,7 +55,7 @@ type Options struct {
 // Device returns the configuration of a device by name.
 func (opts Options) Device(name string) (Device, bool) {
 	for _, dev := range opts.Devices {
-		if dev.ID == name {
+		if dev.Name() == name {
 			return dev, true
 		}
 	}

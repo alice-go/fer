@@ -35,7 +35,7 @@ func (dev *sink) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.datac:
-			log.Printf("received: %q\n", string(data.Data))
+			ctl.Printf("received: %q\n", string(data.Data))
 		case <-ctl.Done():
 			return nil
 		}

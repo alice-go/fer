@@ -35,6 +35,7 @@ func (dev *sampler) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case dev.datac <- fer.Msg{Data: []byte("HELLO")}:
+			ctl.Printf("sent 'HELLO'\n")
 		case <-ctl.Done():
 			return nil
 		}

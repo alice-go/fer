@@ -5,9 +5,11 @@
 package fer
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/sbinet-alice/fer/config"
@@ -16,11 +18,14 @@ import (
 	_ "github.com/sbinet-alice/fer/mq/zeromq"  // load zeromq plugin
 )
 
+var stdout = bufio.NewWriter(os.Stdout)
+
 type channel struct {
 	cfg config.Channel
 	sck mq.Socket
 	cmd chan Cmd
 	msg chan Msg
+	log *log.Logger
 }
 
 func (ch *channel) Name() string {
@@ -42,7 +47,7 @@ func (ch *channel) run(ctx context.Context) {
 		case msg := <-ch.msg:
 			_, err := ch.Send(msg.Data)
 			if err != nil {
-				log.Fatal(err)
+				ch.log.Fatalf("send error: %v\n", err)
 			}
 		case ch.msg <- ch.recv():
 		case cmd := <-ch.cmd:
@@ -50,6 +55,8 @@ func (ch *channel) run(ctx context.Context) {
 			case CmdEnd:
 				return
 			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -66,6 +73,7 @@ func newChannel(drv mq.Driver, cfg config.Channel) (channel, error) {
 	ch := channel{
 		cmd: make(chan Cmd),
 		cfg: cfg,
+		log: log.New(stdout, cfg.Name+": ", 0),
 	}
 	// FIXME(sbinet) support multiple sockets to send/recv to/from
 	if len(cfg.Sockets) != 1 {
@@ -85,18 +93,21 @@ type device struct {
 	chans map[string][]channel
 	cmds  chan Cmd
 	msgs  map[msgAddr]chan Msg
+	msg   *log.Logger
 }
 
 func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
-	log.Printf("--- new device: %v\n", cfg)
+	msg := log.New(stdout, cfg.Name()+": ", 0)
+	msg.Printf("--- new device: %v\n", cfg)
 	dev := device{
 		chans: make(map[string][]channel),
 		cmds:  make(chan Cmd),
 		msgs:  make(map[msgAddr]chan Msg),
+		msg:   msg,
 	}
 
 	for _, opt := range cfg.Channels {
-		log.Printf("--- new channel: %v\n", opt)
+		dev.msg.Printf("--- new channel: %v\n", opt)
 		ch, err := newChannel(drv, opt)
 		if err != nil {
 			return nil, err
@@ -117,45 +128,66 @@ func (dev *device) Chan(name string, i int) (chan Msg, error) {
 }
 
 func (dev *device) Done() chan Cmd {
-	return nil
+	return dev.cmds
 }
 
 func (dev *device) isControler() {}
 
+func (dev *device) Fatalf(format string, v ...interface{}) {
+	dev.msg.Fatalf(format, v...)
+}
+
+func (dev *device) Printf(format string, v ...interface{}) {
+	dev.msg.Printf(format, v...)
+}
+
 func (dev *device) run(ctx context.Context) {
 	for n, chans := range dev.chans {
-		log.Printf("--- init channels [%s]...\n", n)
+		dev.msg.Printf("--- init channels [%s]...\n", n)
 		for i, ch := range chans {
-			log.Printf("--- init channel[%s][%d]...\n", n, i)
+			dev.msg.Printf("--- init channel[%s][%d]...\n", n, i)
 			sck := ch.cfg.Sockets[0]
 			switch strings.ToLower(sck.Method) {
 			case "bind":
 				go func() {
 					err := ch.sck.Listen(sck.Address)
 					if err != nil {
-						log.Fatal(err)
+						dev.msg.Fatalf("listen(%q) error: %v\n", sck.Address, err)
 					}
 				}()
 			case "connect":
 				go func() {
 					err := ch.sck.Dial(sck.Address)
 					if err != nil {
-						log.Fatal(err)
+						dev.msg.Fatalf("dial(%q) error: %v\n", sck.Address, err)
 					}
 				}()
 			default:
-				log.Fatalf("fer: invalid socket method (value=%q)", sck.Method)
+				dev.msg.Fatalf("fer: invalid socket method (value=%q)", sck.Method)
 			}
 		}
 	}
 
 	for n, chans := range dev.chans {
-		log.Printf("--- start channels [%s]...\n", n)
+		dev.msg.Printf("--- start channels [%s]...\n", n)
 		for i := range chans {
 			go chans[i].run(ctx)
 		}
 	}
 
+	/*
+		select {
+		case <-ctx.Done():
+			for n, chans := range dev.chans {
+				dev.msg.Printf("--- stop channels [%s]...\n", n)
+				for i := range chans {
+					go func(i int) {
+						chans[i].cmd <- CmdEnd
+					}(i)
+				}
+			}
+		}
+	*/
 }
 
 // Device is a handle to what users get to run via the Fer toolkit.
@@ -183,10 +215,17 @@ type Device interface {
 // Controler controls devices execution and gives a device access to input and
 // output data channels.
 type Controler interface {
+	Logger
 	Chan(name string, i int) (chan Msg, error)
 	Done() chan Cmd
 
 	isControler()
+}
+
+// Logger gives access to printf-like facilities
+type Logger interface {
+	Fatalf(format string, v ...interface{})
+	Printf(format string, v ...interface{})
 }
 
 type msgAddr struct {

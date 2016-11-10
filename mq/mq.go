@@ -115,7 +115,7 @@ func Open(name string) (Driver, error) {
 	return drv, nil
 }
 
-// Driver is an Fer plugin to create FairMQ-compatible message queue communications
+// Driver is a Fer plugin to create FairMQ-compatible message queue communications
 type Driver interface {
 	NewSocket(typ SocketType) (Socket, error)
 	Name() string

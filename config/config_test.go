@@ -162,6 +162,28 @@ var data = map[string][]byte{
         }
     }
 }`),
+	"multi-sockets-with-defaults.json": []byte(`{
+    "fairMQOptions":
+    {
+        "devices":
+        [{
+            "id": "device1",
+            "channels":
+            [{
+                "name": "data",
+                "type": "push",
+                "method": "connect",
+                "sockets":
+                [
+                    { "address": "tcp://127.0.0.1:5555" },
+                    { "address": "tcp://127.0.0.1:5556" },
+                    { "address": "tcp://127.0.0.1:5557" }
+                ]
+            }]
+        }]
+    }
+}
+`),
 }
 
 func TestConfigParser(t *testing.T) {

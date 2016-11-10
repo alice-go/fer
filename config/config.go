@@ -176,14 +176,22 @@ func (sck *Socket) UnmarshalJSON(data []byte) error {
 	sck.Type = raw.Type
 	sck.Method = raw.Method
 	sck.Address = raw.Address
+	strFunc := func(v *string, def string) {
+		if *v == "" {
+			*v = def
+		}
+	}
+	strFunc(&raw.SendBufSize, "1000")
 	sck.SendBufSize, err = strconv.Atoi(raw.SendBufSize)
 	if err != nil {
 		return err
 	}
+	strFunc(&raw.RecvBufSize, "1000")
 	sck.RecvBufSize, err = strconv.Atoi(raw.RecvBufSize)
 	if err != nil {
 		return err
 	}
+	strFunc(&raw.RateLogging, "0")
 	sck.RateLogging, err = strconv.Atoi(raw.RateLogging)
 	if err != nil {
 		return err

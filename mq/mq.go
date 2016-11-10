@@ -33,6 +33,9 @@ type Socket interface {
 // SocketType describes the type of a socket (PUB, SUP, PUSH, PULL, ...)
 type SocketType int
 
+// List of known socket types.
+// Each Fer MQ driver ("zeromq", "nanomsg", ...) may support a different subset of
+// socket types.
 const (
 	Invalid SocketType = iota
 	Sub
@@ -49,6 +52,9 @@ const (
 	Bus
 )
 
+// SocketTypeFrom constructs a SocketType from its name.
+// The matching is case insensitive.
+// SocketTypeFrom panics if the given socket type name is invalid.
 func SocketTypeFrom(name string) SocketType {
 	switch strings.ToLower(name) {
 	case "sub":
@@ -84,7 +90,7 @@ var drivers struct {
 	db map[string]Driver
 }
 
-// Register registers a new Fer driver plugin
+// Register registers a new Fer MQ driver plugin
 func Register(name string, drv Driver) {
 	drivers.Lock()
 	defer drivers.Unlock()

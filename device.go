@@ -191,63 +191,9 @@ func (dev *device) run(ctx context.Context) {
 	*/
 }
 
-// Device is a handle to what users get to run via the Fer toolkit.
-//
-// Devices are configured according to command-line flags and a JSON
-// configuration file.
-// Clients should implement the Run method to receive and send data via
-// the Controler data channels.
-type Device interface {
-	// Configure hands a device its configuration.
-	Configure(cfg config.Device) error
-	// Init gives a chance to the device to initialize internal
-	// data structures, retrieve channels to input/output data.
-	Init(ctl Controler) error
-	// Run is where the device's main activity happens.
-	// Run should loop forever, until the Controler.Done() channel says
-	// otherwise.
-	Run(ctl Controler) error
-	// Pause pauses the device's execution.
-	Pause(ctl Controler) error
-	// Reset resets the device's internal state.
-	Reset(ctl Controler) error
-}
-
-// Controler controls devices execution and gives a device access to input and
-// output data channels.
-type Controler interface {
-	Logger
-	Chan(name string, i int) (chan Msg, error)
-	Done() chan Cmd
-
-	isControler()
-}
-
-// Logger gives access to printf-like facilities
-type Logger interface {
-	Fatalf(format string, v ...interface{})
-	Printf(format string, v ...interface{})
-}
-
 type msgAddr struct {
 	name string
 	id   int
-}
-
-// Msg is a quantum of data being exchanged between devices.
-type Msg struct {
-	Data []byte // Data is the message payload.
-	Err  error  // Err indicates whether an error occured.
-}
-
-// Main configures and runs a device's execution, managing its state.
-func Main(dev Device) error {
-	cfg, err := config.Parse()
-	if err != nil {
-		return err
-	}
-
-	return runDevice(context.Background(), cfg, dev)
 }
 
 func runDevice(ctx context.Context, cfg config.Config, dev Device) error {

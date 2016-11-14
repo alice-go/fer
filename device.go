@@ -8,9 +8,11 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/sbinet-alice/fer/config"
 	"github.com/sbinet-alice/fer/mq"
@@ -19,7 +21,8 @@ import (
 )
 
 // FIXME(sbinet) use a per-device stdout
-var stdout = bufio.NewWriter(os.Stdout)
+//var stdout = bufio.NewWriter(os.Stdout)
+var stdout = os.Stdout
 
 type channel struct {
 	cfg config.Channel
@@ -43,14 +46,38 @@ func (ch *channel) Recv() ([]byte, error) {
 }
 
 func (ch *channel) run(ctx context.Context) {
+	typ := mq.SocketTypeFrom(ch.cfg.Sockets[0].Type)
+	// ch.log.Printf("--- run [%v]\n", typ)
+	switch typ {
+	case mq.Pub, mq.Push, mq.Sub:
+		go func() {
+			for msg := range ch.msg {
+				if len(msg.Data) <= 0 {
+					continue
+				}
+				_, err := ch.Send(msg.Data)
+				if err != nil {
+					ch.log.Fatalf("send error: %v\n", err)
+				}
+			}
+		}()
+	}
+
+	switch typ {
+	case mq.Pub, mq.Pull, mq.Sub:
+		go func() {
+			for {
+				data, err := ch.Recv()
+				ch.msg <- Msg{data, err}
+				if err != nil {
+					ch.log.Fatalf("recv error: %v\n", err)
+				}
+			}
+		}()
+	}
+
 	for {
 		select {
-		case msg := <-ch.msg:
-			_, err := ch.Send(msg.Data)
-			if err != nil {
-				ch.log.Fatalf("send error: %v\n", err)
-			}
-		case ch.msg <- ch.recv():
 		case cmd := <-ch.cmd:
 			switch cmd {
 			case CmdEnd:
@@ -70,11 +97,11 @@ func (ch *channel) recv() Msg {
 	}
 }
 
-func newChannel(drv mq.Driver, cfg config.Channel) (channel, error) {
+func newChannel(drv mq.Driver, cfg config.Channel, dev *device) (channel, error) {
 	ch := channel{
 		cmd: make(chan Cmd),
 		cfg: cfg,
-		log: log.New(stdout, cfg.Name+": ", 0),
+		log: log.New(stdout, dev.name+"."+cfg.Name+": ", 0),
 	}
 	// FIXME(sbinet) support multiple sockets to send/recv to/from
 	if len(cfg.Sockets) != 1 {
@@ -89,27 +116,52 @@ func newChannel(drv mq.Driver, cfg config.Channel) (channel, error) {
 	return ch, nil
 }
 
+type msgAddr struct {
+	name string
+	id   int
+}
+
 type device struct {
 	name  string
+	cfg   config.Device
 	chans map[string][]channel
+	done  chan Cmd
+	quit  chan error
 	cmds  chan Cmd
 	msgs  map[msgAddr]chan Msg
 	msg   *log.Logger
+
+	mu  sync.Mutex
+	usr Device
 }
 
-func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
-	msg := log.New(stdout, cfg.Name()+": ", 0)
-	msg.Printf("--- new device: %v\n", cfg)
+func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader) (*device, error) {
+	drv, err := mq.Open(cfg.Transport)
+	if err != nil {
+		return nil, err
+	}
+	dcfg, ok := cfg.Options.Device(cfg.ID)
+	if !ok {
+		return nil, fmt.Errorf("fer: no such device %q", cfg.ID)
+	}
+
+	msg := log.New(stdout, dcfg.Name()+": ", 0)
+	msg.Printf("--- new device: %v\n", dcfg)
 	dev := device{
+		name:  dcfg.Name(),
+		cfg:   dcfg,
 		chans: make(map[string][]channel),
+		done:  make(chan Cmd),
+		quit:  make(chan error),
 		cmds:  make(chan Cmd),
 		msgs:  make(map[msgAddr]chan Msg),
 		msg:   msg,
+		usr:   udev,
 	}
 
-	for _, opt := range cfg.Channels {
-		dev.msg.Printf("--- new channel: %v\n", opt)
-		ch, err := newChannel(drv, opt)
+	for _, opt := range dcfg.Channels {
+		// dev.msg.Printf("--- new channel: %v\n", opt)
+		ch, err := newChannel(drv, opt, &dev)
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +169,95 @@ func newDevice(drv mq.Driver, cfg config.Device) (*device, error) {
 		dev.chans[opt.Name] = []channel{ch}
 		dev.msgs[msgAddr{name: opt.Name, id: 0}] = ch.msg
 	}
+
+	go dev.input(ctx, r)
+	go dev.dispatch(ctx)
+
 	return &dev, nil
+}
+
+func (dev *device) dispatch(ctx context.Context) {
+	var err error
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			err = ctx.Err()
+			break loop
+		case cmd := <-dev.cmds:
+			// dev.msg.Printf("received command %d\n", int(cmd))
+			switch cmd {
+			case CmdInitDevice:
+				dev.initDevice(ctx)
+			case CmdInitTask:
+			case CmdRun:
+				go dev.runDevice(ctx)
+			case CmdPause:
+			case CmdStop:
+			case CmdResetTask:
+			case CmdResetDevice:
+			case CmdEnd:
+				dev.done <- cmd
+				break loop
+			case CmdError:
+				dev.done <- cmd
+				break loop
+			default:
+				panic(fmt.Errorf("fer: invalid cmd value (command=%d)", int(cmd)))
+			}
+		}
+	}
+	dev.quit <- err
+}
+
+func (dev *device) input(ctx context.Context, r io.Reader) {
+	var err error
+	scan := bufio.NewScanner(r)
+	//scan.Split(bufio.ScanBytes)
+	for scan.Scan() {
+		err = scan.Err()
+		if err != nil {
+			break
+		}
+		buf := scan.Bytes()
+		if len(buf) == 0 {
+			continue
+		}
+		switch buf[0] {
+		case 'i':
+			dev.cmds <- CmdInitDevice
+		case 'j':
+			dev.cmds <- CmdInitTask
+		case 'p':
+			dev.cmds <- CmdPause
+		case 'r':
+			dev.cmds <- CmdRun
+		case 's':
+			dev.cmds <- CmdStop
+		case 't':
+			dev.cmds <- CmdResetTask
+		case 'd':
+			dev.cmds <- CmdResetDevice
+		case 'h':
+			// FIXME(sbinet): print interactive state loop help
+		case 'q':
+			dev.cmds <- CmdStop
+			dev.cmds <- CmdResetTask
+			dev.cmds <- CmdResetDevice
+			dev.cmds <- CmdEnd
+			return
+		default:
+			dev.msg.Printf("invalid input [%q]\n", string(buf))
+		}
+	}
+
+	if err == io.EOF {
+		err = nil
+	}
+
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (dev *device) Chan(name string, i int) (chan Msg, error) {
@@ -129,7 +269,7 @@ func (dev *device) Chan(name string, i int) (chan Msg, error) {
 }
 
 func (dev *device) Done() chan Cmd {
-	return dev.cmds
+	return dev.done
 }
 
 func (dev *device) isControler() {}
@@ -142,93 +282,74 @@ func (dev *device) Printf(format string, v ...interface{}) {
 	dev.msg.Printf(format, v...)
 }
 
-func (dev *device) run(ctx context.Context) {
-	for n, chans := range dev.chans {
-		dev.msg.Printf("--- init channels [%s]...\n", n)
-		for i, ch := range chans {
-			dev.msg.Printf("--- init channel[%s][%d]...\n", n, i)
+func (dev *device) initDevice(ctx context.Context) {
+	dev.mu.Lock()
+	err := dev.usr.Init(dev)
+	dev.mu.Unlock()
+	if err != nil {
+		dev.quit <- err
+	}
+}
+
+func (dev *device) runDevice(ctx context.Context) {
+	//dev.mu.Lock()
+	err := dev.usr.Run(dev)
+	//dev.mu.Unlock()
+	if err != nil {
+		dev.quit <- err
+	}
+}
+
+func (dev *device) stopDevice(ctx context.Context) {
+	for _, chans := range dev.chans {
+		for _, ch := range chans {
+			ch.cmd <- CmdEnd
+		}
+	}
+}
+
+func (dev *device) run(ctx context.Context) error {
+	err := dev.usr.Configure(dev.cfg)
+	if err != nil {
+		return err
+	}
+
+	for _, chans := range dev.chans {
+		// dev.msg.Printf("--- init channels [%s]...\n", n)
+		for _, ch := range chans {
+			// dev.msg.Printf("--- init channel[%s][%d]...\n", n, i)
 			sck := ch.cfg.Sockets[0]
 			switch strings.ToLower(sck.Method) {
 			case "bind":
 				go func() {
 					err := ch.sck.Listen(sck.Address)
 					if err != nil {
-						dev.msg.Fatalf("listen(%q) error: %v\n", sck.Address, err)
+						dev.quit <- err
 					}
 				}()
 			case "connect":
 				go func() {
 					err := ch.sck.Dial(sck.Address)
 					if err != nil {
-						dev.msg.Fatalf("dial(%q) error: %v\n", sck.Address, err)
+						dev.quit <- err
 					}
 				}()
 			default:
-				dev.msg.Fatalf("fer: invalid socket method (value=%q)", sck.Method)
+				go func() {
+					dev.quit <- fmt.Errorf("fer: invalid socket method (value=%q)", sck.Method)
+				}()
 			}
 		}
 	}
 
-	for n, chans := range dev.chans {
-		dev.msg.Printf("--- start channels [%s]...\n", n)
+	for _, chans := range dev.chans {
+		// dev.msg.Printf("--- start channels [%s]...\n", n)
 		for i := range chans {
 			go chans[i].run(ctx)
 		}
 	}
 
-	/*
-		select {
-		case <-ctx.Done():
-			for n, chans := range dev.chans {
-				dev.msg.Printf("--- stop channels [%s]...\n", n)
-				for i := range chans {
-					go func(i int) {
-						chans[i].cmd <- CmdEnd
-					}(i)
-				}
-			}
-		}
-	*/
-}
+	defer dev.stopDevice(ctx)
 
-type msgAddr struct {
-	name string
-	id   int
-}
-
-func runDevice(ctx context.Context, cfg config.Config, dev Device) error {
-	drv, err := mq.Open(cfg.Transport)
-	if err != nil {
-		return err
-	}
-
-	devName := cfg.ID
-	devCfg, ok := cfg.Options.Device(devName)
-	if !ok {
-		return fmt.Errorf("fer: no such device %q", devName)
-	}
-
-	sys, err := newDevice(drv, devCfg)
-	if err != nil {
-		return err
-	}
-
-	err = dev.Configure(devCfg)
-	if err != nil {
-		return err
-	}
-
-	go sys.run(ctx)
-
-	err = dev.Init(sys)
-	if err != nil {
-		return err
-	}
-
-	err = dev.Run(sys)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return <-dev.quit
 }

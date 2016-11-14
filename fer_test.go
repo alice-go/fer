@@ -6,7 +6,9 @@ package fer
 
 import (
 	"context"
+	"io"
 	"net"
+	"os"
 	"strconv"
 	"testing"
 
@@ -28,6 +30,8 @@ func getTCPPort() (string, error) {
 }
 
 func runSamplerProcessorSink(t *testing.T, transport string) {
+
+	stdin := os.Stdin
 
 	port1, err := getTCPPort()
 	if err != nil {
@@ -101,48 +105,41 @@ func runSamplerProcessorSink(t *testing.T, transport string) {
 		},
 	}
 
-	dev1 := make(chan int)
-	dev2 := make(chan int)
-	dev3 := make(chan int)
-
 	grp, ctx := errgroup.WithContext(context.Background())
-	grp.Go(func() error {
+	newTestDevice := func(id string, dev Device) *device {
 		cfg := cfg
-		cfg.ID = "sampler1"
-		return runDevice(
-			ctx,
-			cfg,
-			&sampler{done: dev1},
-		)
-	})
-	grp.Go(func() error {
-		cfg := cfg
-		cfg.ID = "processor"
-		return runDevice(
-			ctx,
-			cfg,
-			&processor{done: dev2},
-		)
-	})
-	grp.Go(func() error {
-		cfg := cfg
-		cfg.ID = "sink1"
-		return runDevice(
-			ctx,
-			cfg,
-			&sink{done: dev3},
-		)
-	})
+		cfg.ID = id
+		sys, err := newDevice(ctx, cfg, dev, stdin)
+		if err != nil {
+			t.Fatalf("error creating device %q: %v\n", id, err)
+		}
+		return sys
+	}
+
+	done := make(chan int)
+	dev1 := newTestDevice("sampler1", &sampler{done: done})
+	dev2 := newTestDevice("processor", &processor{})
+	dev3 := newTestDevice("sink1", &sink{})
+
+	grp.Go(func() error { return dev1.run(ctx) })
+	grp.Go(func() error { return dev2.run(ctx) })
+	grp.Go(func() error { return dev3.run(ctx) })
+
+	broadcast(CmdInitDevice, dev1, dev2, dev3)
+	broadcast(CmdRun, dev1, dev2, dev3)
 
 	go func() {
-		<-dev1
-		dev2 <- 1
-		dev3 <- 1
+		<-done
+		broadcast(CmdEnd, dev1, dev2, dev3)
 	}()
 
 	err = grp.Wait()
 	if err != nil {
-		stdout.Flush()
+		if o, ok := io.Writer(stdout).(interface {
+			Flush() error
+		}); ok {
+			o.Flush()
+		}
 		t.Fatalf("unexpected error value: %v\n", err)
 	}
 }
@@ -173,17 +170,18 @@ func (dev *sampler) Init(ctl Controler) error {
 
 func (dev *sampler) Run(ctl Controler) error {
 	i := 0
-	for i < 10 {
+	for {
 		select {
 		case dev.datac <- Msg{Data: []byte("HELLO")}:
 			i++
 		case <-ctl.Done():
-			ctl.Printf("exiting...\n")
 			return nil
 		}
+		if i >= 10 {
+			dev.datac = nil
+			dev.done <- 1
+		}
 	}
-
-	dev.done <- 1
 	return nil
 }
 
@@ -199,7 +197,6 @@ type processor struct {
 	cfg    config.Device
 	idatac chan Msg
 	odatac chan Msg
-	done   chan int
 }
 
 func (dev *processor) Configure(cfg config.Device) error {
@@ -232,10 +229,6 @@ func (dev *processor) Run(ctl Controler) error {
 			out = append(out, []byte(" (modified by "+dev.cfg.ID+")")...)
 			dev.odatac <- Msg{Data: out}
 		case <-ctl.Done():
-			ctl.Printf("exiting...\n")
-			return nil
-		case <-dev.done:
-			ctl.Printf("exiting...\n")
 			return nil
 		}
 	}
@@ -252,8 +245,6 @@ func (dev *processor) Reset(ctl Controler) error {
 type sink struct {
 	cfg   config.Device
 	datac chan Msg
-	done  chan int
-	sum   chan int
 }
 
 func (dev *sink) Configure(cfg config.Device) error {
@@ -276,12 +267,7 @@ func (dev *sink) Run(ctl Controler) error {
 		select {
 		case data := <-dev.datac:
 			ctl.Printf("received: %q\n", string(data.Data))
-			go func() { dev.sum <- 1 }()
 		case <-ctl.Done():
-			ctl.Printf("exiting...\n")
-			return nil
-		case <-dev.done:
-			ctl.Printf("exiting...\n")
 			return nil
 		}
 	}

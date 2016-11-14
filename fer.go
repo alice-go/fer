@@ -8,6 +8,8 @@ package fer
 import (
 	"context"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/sbinet-alice/fer/config"
 )
@@ -19,7 +21,7 @@ func Main(dev Device) error {
 		return err
 	}
 
-	return runDevice(context.Background(), cfg, dev)
+	return runDevice(context.Background(), cfg, dev, os.Stdin)
 }
 
 // Device is a handle to what users get to run via the Fer toolkit.
@@ -112,4 +114,24 @@ func (cmd Cmd) String() string {
 		return "ERROR_FOUND"
 	}
 	panic(fmt.Errorf("fer: invalid Cmd value (command=%d)", int(cmd)))
+}
+
+func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader) error {
+	sys, err := newDevice(ctx, cfg, dev, r)
+	if err != nil {
+		return err
+	}
+
+	if true {
+		sys.cmds <- CmdInitDevice
+		sys.cmds <- CmdRun
+	}
+
+	return sys.run(ctx)
+}
+
+func broadcast(cmd Cmd, devs ...*device) {
+	for _, dev := range devs {
+		dev.cmds <- cmd
+	}
 }

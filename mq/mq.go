@@ -52,6 +52,38 @@ const (
 	Bus
 )
 
+func (typ SocketType) String() string {
+	switch typ {
+	case Invalid:
+		return "invalid"
+	case Sub:
+		return "sub"
+	case Pub:
+		return "pub"
+	case XSub:
+		return "xsub"
+	case XPub:
+		return "xpub"
+	case Push:
+		return "push"
+	case Pull:
+		return "pull"
+	case Req:
+		return "req"
+	case Rep:
+		return "rep"
+	case Dealer:
+		return "dealer"
+	case Router:
+		return "router"
+	case Pair:
+		return "pair"
+	case Bus:
+		return "bus"
+	}
+	return "N/A"
+}
+
 // SocketTypeFrom constructs a SocketType from its name.
 // The matching is case insensitive.
 // SocketTypeFrom panics if the given socket type name is invalid.

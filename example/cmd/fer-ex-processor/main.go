@@ -42,7 +42,7 @@ func (dev *processor) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case data := <-dev.idatac:
-			ctl.Printf("received: %q\n", string(data.Data))
+			// ctl.Printf("received: %q\n", string(data.Data))
 			out := append([]byte(nil), data.Data...)
 			out = append(out, []byte(" (modified by "+dev.cfg.Name()+")")...)
 			dev.odatac <- fer.Msg{Data: out}

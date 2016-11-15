@@ -17,7 +17,7 @@ import (
 func Parse() (Config, error) {
 	var (
 		id      = flag.String("id", "", "device ID")
-		trans   = flag.String("transport", "zeromq", "transport mechanism to use (zeromq, nanomsg, go-chan, ...")
+		trans   = flag.String("transport", "zeromq", "transport mechanism to use (zeromq, nanomsg, go-chan, ...)")
 		mq      = flag.String("mq-config", "", "path to JSON file holding device configuration")
 		control = flag.String("control", "interactive", "starts device in interactive/static mode")
 	)

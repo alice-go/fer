@@ -5,11 +5,16 @@
 package fer
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"os"
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,134 +35,168 @@ func getTCPPort() (string, error) {
 	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
 }
 
-func runSamplerProcessorSink(t *testing.T, transport string) {
+func TestSamplerProcessorSink(t *testing.T) {
+	for _, n := range []string{"zeromq", "nanomsg"} {
+		transport := n
+		t.Run("transport="+transport, func(t *testing.T) {
 
-	stdin := os.Stdin
+			stdin := os.Stdin
 
-	port1, err := getTCPPort()
-	if err != nil {
-		t.Fatalf("error getting free TCP port: %v\n", err)
-	}
-	port2, err := getTCPPort()
-	if err != nil {
-		t.Fatalf("error getting free TCP port: %v\n", err)
-	}
+			port1, err := getTCPPort()
+			if err != nil {
+				t.Fatalf("error getting free TCP port: %v\n", err)
+			}
+			port2, err := getTCPPort()
+			if err != nil {
+				t.Fatalf("error getting free TCP port: %v\n", err)
+			}
 
-	cfg := config.Config{
-		Transport: transport,
-		Options: config.Options{
-			Devices: []config.Device{
-				{
-					ID: "sampler1",
-					Channels: []config.Channel{
+			cfg := config.Config{
+				Transport: transport,
+				Options: config.Options{
+					Devices: []config.Device{
 						{
-							Name: "data1",
-							Sockets: []config.Socket{
+							ID: "sampler1",
+							Channels: []config.Channel{
 								{
-									Type:    "push",
-									Method:  "bind",
-									Address: "tcp://*:" + port1,
+									Name: "data1",
+									Sockets: []config.Socket{
+										{
+											Type:    "push",
+											Method:  "bind",
+											Address: "tcp://*:" + port1,
+										},
+									},
+								},
+							},
+						},
+						{
+							Key: "processor",
+							Channels: []config.Channel{
+								{
+									Name: "data1",
+									Sockets: []config.Socket{
+										{
+											Type:    "pull",
+											Method:  "connect",
+											Address: "tcp://localhost:" + port1,
+										},
+									},
+								},
+								{
+									Name: "data2",
+									Sockets: []config.Socket{
+										{
+											Type:    "push",
+											Method:  "connect",
+											Address: "tcp://localhost:" + port2,
+										},
+									},
+								},
+							},
+						},
+						{
+							ID: "sink1",
+							Channels: []config.Channel{
+								{
+									Name: "data2",
+									Sockets: []config.Socket{
+										{
+											Type:    "pull",
+											Method:  "bind",
+											Address: "tcp://*:" + port2,
+										},
+									},
 								},
 							},
 						},
 					},
 				},
-				{
-					Key: "processor",
-					Channels: []config.Channel{
-						{
-							Name: "data1",
-							Sockets: []config.Socket{
-								{
-									Type:    "pull",
-									Method:  "connect",
-									Address: "tcp://localhost:" + port1,
-								},
-							},
-						},
-						{
-							Name: "data2",
-							Sockets: []config.Socket{
-								{
-									Type:    "push",
-									Method:  "connect",
-									Address: "tcp://localhost:" + port2,
-								},
-							},
-						},
-					},
-				},
-				{
-					ID: "sink1",
-					Channels: []config.Channel{
-						{
-							Name: "data2",
-							Sockets: []config.Socket{
-								{
-									Type:    "pull",
-									Method:  "bind",
-									Address: "tcp://*:" + port2,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+			}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+			stdout := new(bytes.Buffer)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 
-	grp, ctx := errgroup.WithContext(ctx)
-	newTestDevice := func(id string, dev Device) *device {
-		cfg := cfg
-		cfg.ID = id
-		sys, err := newDevice(ctx, cfg, dev, stdin)
-		if err != nil {
-			t.Fatalf("error creating device %q: %v\n", id, err)
-		}
-		return sys
-	}
+			grp, ctx := errgroup.WithContext(ctx)
+			newTestDevice := func(id string, dev Device) *device {
+				cfg := cfg
+				cfg.ID = id
+				sys, err := newDevice(ctx, cfg, dev, stdin, stdout)
+				if err != nil {
+					t.Fatalf("error creating device %q: %v\n", id, err)
+				}
+				return sys
+			}
 
-	const N = 10
-	sumc := make(chan int)
-	dev1 := newTestDevice("sampler1", &sampler{n: N})
-	dev2 := newTestDevice("processor", &processor{})
-	dev3 := newTestDevice("sink1", &sink{sum: sumc, n: N})
+			const N = 10
+			sumc := make(chan string)
+			dev1 := newTestDevice("sampler1", &sampler{n: N})
+			dev2 := newTestDevice("processor", &processor{})
+			dev3 := newTestDevice("sink1", &sink{sum: sumc, n: N})
 
-	grp.Go(func() error { return dev1.run(ctx) })
-	grp.Go(func() error { return dev2.run(ctx) })
-	grp.Go(func() error { return dev3.run(ctx) })
+			grp.Go(func() error { return dev1.run(ctx) })
+			grp.Go(func() error { return dev2.run(ctx) })
+			grp.Go(func() error { return dev3.run(ctx) })
 
-	broadcast(CmdInitDevice, dev1, dev2, dev3)
-	broadcast(CmdRun, dev1, dev2, dev3)
+			broadcast(CmdInitDevice, dev1, dev2, dev3)
+			broadcast(CmdRun, dev1, dev2, dev3)
 
-	sum := 0
-	go func() {
-		for range sumc {
-			sum++
-		}
-		broadcast(CmdEnd, dev1, dev2, dev3)
-	}()
+			sum := make([]string, 0, N)
+			go func() {
+				for s := range sumc {
+					sum = append(sum, s)
+				}
+				broadcast(CmdEnd, dev1, dev2, dev3)
+			}()
 
-	err = grp.Wait()
-	if err != nil {
-		if o, ok := io.Writer(stdout).(interface {
-			Flush() error
-		}); ok {
-			o.Flush()
-		}
-		t.Fatalf("unexpected error value: %v\n", err)
-	}
+			err = grp.Wait()
+			if err != nil {
+				t.Fatalf("unexpected error value: %v\n", err)
+			}
 
-	if sum != N {
-		t.Fatalf("got %d. want %d\n", sum, N)
+			if len(sum) != N {
+				t.Fatalf("got %d. want %d\n", len(sum), N)
+			}
+
+			want := []string{
+				"HELLO-00 (modified by processor)-00) - 00",
+				"HELLO-01 (modified by processor)-01) - 01",
+				"HELLO-02 (modified by processor)-02) - 02",
+				"HELLO-03 (modified by processor)-03) - 03",
+				"HELLO-04 (modified by processor)-04) - 04",
+				"HELLO-05 (modified by processor)-05) - 05",
+				"HELLO-06 (modified by processor)-06) - 06",
+				"HELLO-07 (modified by processor)-07) - 07",
+				"HELLO-08 (modified by processor)-08) - 08",
+				"HELLO-09 (modified by processor)-09) - 09",
+			}
+			if !reflect.DeepEqual(sum, want) {
+
+				scan := bufio.NewScanner(stdout)
+				for scan.Scan() {
+					err = scan.Err()
+					if err != nil {
+						break
+					}
+					t.Logf("%v\n", scan.Text())
+				}
+
+				t.Fatalf("error comparing outputs\ngot:\n%s\n\nwant:\n%s\n",
+					strings.Join(sum, "\n"),
+					strings.Join(want, "\n"),
+				)
+				if err == io.EOF {
+					err = nil
+				}
+
+				if err != nil {
+					t.Fatalf("error scanning stdout: %v\n", err)
+				}
+			}
+		})
 	}
 }
-
-func TestSamplerProcessorSinkZMQ(t *testing.T) { runSamplerProcessorSink(t, "zeromq") }
-func TestSamplerProcessorSinkNN(t *testing.T)  { runSamplerProcessorSink(t, "nanomsg") }
 
 type sampler struct {
 	cfg   config.Device
@@ -184,8 +223,7 @@ func (dev *sampler) Run(ctl Controler) error {
 	i := 0
 	for {
 		select {
-		case dev.datac <- Msg{Data: []byte("HELLO")}:
-			ctl.Printf("send data (%d)\n", i)
+		case dev.datac <- Msg{Data: []byte(fmt.Sprintf("HELLO-%02d", i))}:
 			i++
 		case <-ctl.Done():
 			return nil
@@ -237,11 +275,9 @@ func (dev *processor) Run(ctl Controler) error {
 	for {
 		select {
 		case data := <-dev.idatac:
-			ctl.Printf("received: %q (%d)\n", string(data.Data), i)
 			out := append([]byte(nil), data.Data...)
-			out = append(out, []byte(" (modified by "+dev.cfg.ID+")")...)
+			out = append(out, []byte(fmt.Sprintf(" (modified by %s)-%02d)", dev.cfg.Name(), i))...)
 			dev.odatac <- Msg{Data: out}
-			ctl.Printf("re-sent data (%d)\n", i)
 			i++
 		case <-ctl.Done():
 			return nil
@@ -261,7 +297,7 @@ type sink struct {
 	cfg   config.Device
 	datac chan Msg
 	n     int
-	sum   chan int
+	sum   chan string
 }
 
 func (dev *sink) Configure(cfg config.Device) error {
@@ -284,8 +320,8 @@ func (dev *sink) Run(ctl Controler) error {
 	for {
 		select {
 		case data := <-dev.datac:
-			ctl.Printf("received: %q (%d)\n", string(data.Data), i)
-			dev.sum <- 1
+			//ctl.Printf("received: %q (%d)\n", string(data.Data), i)
+			dev.sum <- fmt.Sprintf("%s - %02d", string(data.Data), i)
 			i++
 		case <-ctl.Done():
 			return nil

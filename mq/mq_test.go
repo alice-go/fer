@@ -124,3 +124,88 @@ func TestPushPull(t *testing.T) {
 		})
 	}
 }
+
+func TestReqRep(t *testing.T) {
+	for i := range drivers {
+		transport := drivers[i]
+		t.Run("transport="+transport, func(t *testing.T) {
+
+			const (
+				N    = 5
+				tmpl = "data-%02d"
+			)
+
+			port, err := getTCPPort()
+			if err != nil {
+				t.Fatalf("error getting free TCP port: %v\n", err)
+			}
+
+			drv, err := mq.Open(transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			req, err := drv.NewSocket(mq.Req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer req.Close()
+
+			rep, err := drv.NewSocket(mq.Rep)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer rep.Close()
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				err := req.Dial("tcp://localhost:" + port)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < N; i++ {
+					err = req.Send([]byte("GET"))
+					if err != nil {
+						t.Fatalf("error sending request[%d]: %v\n", i, err)
+					}
+					msg, err := req.Recv()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got, want := string(msg), fmt.Sprintf(tmpl, i); got != want {
+						t.Errorf("req-rep[%d]: got=%q want=%q\n", i, got, want)
+					}
+				}
+				wg.Done()
+			}()
+
+			err = rep.Listen("tcp://*:" + port)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var msg []byte
+			for i := 0; i < N; i++ {
+				msg, err = rep.Recv()
+				if err != nil {
+					t.Fatalf("error receiving request[%d]: %v\n", i, err)
+				}
+				if string(msg) == "GET" {
+					err = rep.Send([]byte(fmt.Sprintf(tmpl, i)))
+					if err != nil {
+						t.Fatalf("error sending data[%d]: %v\n", i, err)
+					}
+				}
+			}
+			wg.Wait()
+
+			err = rep.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = req.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

@@ -129,7 +129,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 				return sys
 			}
 
-			const N = 10
+			const N = 1024
 			sumc := make(chan string)
 			dev1 := newTestDevice("sampler1", &sampler{n: N})
 			dev2 := newTestDevice("processor", &processor{})
@@ -159,17 +159,9 @@ func TestSamplerProcessorSink(t *testing.T) {
 				t.Fatalf("got %d. want %d\n", len(sum), N)
 			}
 
-			want := []string{
-				"HELLO-00 (modified by processor)-00) - 00",
-				"HELLO-01 (modified by processor)-01) - 01",
-				"HELLO-02 (modified by processor)-02) - 02",
-				"HELLO-03 (modified by processor)-03) - 03",
-				"HELLO-04 (modified by processor)-04) - 04",
-				"HELLO-05 (modified by processor)-05) - 05",
-				"HELLO-06 (modified by processor)-06) - 06",
-				"HELLO-07 (modified by processor)-07) - 07",
-				"HELLO-08 (modified by processor)-08) - 08",
-				"HELLO-09 (modified by processor)-09) - 09",
+			want := make([]string, 0, N)
+			for i := 0; i < N; i++ {
+				want = append(want, fmt.Sprintf("HELLO-%02[1]d (modified by %[2]s - %02[1]d) - %02[1]d", i, dev2.name))
 			}
 			if !reflect.DeepEqual(sum, want) {
 
@@ -276,7 +268,7 @@ func (dev *processor) Run(ctl Controler) error {
 		select {
 		case data := <-dev.idatac:
 			out := append([]byte(nil), data.Data...)
-			out = append(out, []byte(fmt.Sprintf(" (modified by %s)-%02d)", dev.cfg.Name(), i))...)
+			out = append(out, []byte(fmt.Sprintf(" (modified by %s - %02d)", dev.cfg.Name(), i))...)
 			dev.odatac <- Msg{Data: out}
 			i++
 		case <-ctl.Done():

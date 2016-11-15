@@ -23,6 +23,15 @@ import (
 	"github.com/sbinet-alice/fer/mq"
 )
 
+type socket struct {
+	mangos.Socket
+	typ mq.SocketType
+}
+
+func (s socket) Type() mq.SocketType {
+	return s.typ
+}
+
 type driver struct{}
 
 func (driver) Name() string {
@@ -60,7 +69,7 @@ func (driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 
 	sck.AddTransport(ipc.NewTransport())
 	sck.AddTransport(tcp.NewTransport())
-	return sck, err
+	return socket{Socket: sck, typ: typ}, err
 }
 
 func init() {

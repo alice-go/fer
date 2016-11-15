@@ -46,7 +46,7 @@ func (ch *channel) Recv() ([]byte, error) {
 }
 
 func (ch *channel) run(ctx context.Context) {
-	typ := mq.SocketTypeFrom(ch.cfg.Sockets[0].Type)
+	typ := ch.sck.Type()
 	// ch.log.Printf("--- run [%v]\n", typ)
 	switch typ {
 	case mq.Pub, mq.Push, mq.Sub:

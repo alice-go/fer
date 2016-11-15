@@ -28,9 +28,12 @@ type Socket interface {
 
 	// Dial connects a remote endpoint to the Socket.
 	Dial(addr string) error
+
+	// Type returns the type of this Socket (PUB, SUB, ...)
+	Type() SocketType
 }
 
-// SocketType describes the type of a socket (PUB, SUP, PUSH, PULL, ...)
+// SocketType describes the type of a socket (PUB, SUB, PUSH, PULL, ...)
 type SocketType int
 
 // List of known socket types.

@@ -29,7 +29,8 @@ func getError(v C.int) error {
 }
 
 type socket struct {
-	c unsafe.Pointer
+	c   unsafe.Pointer
+	typ mq.SocketType
 }
 
 func (s *socket) Close() error {
@@ -80,6 +81,10 @@ func (s *socket) Dial(addr string) error {
 	return getError(v)
 }
 
+func (s *socket) Type() mq.SocketType {
+	return s.typ
+}
+
 type driver struct {
 	ctx unsafe.Pointer
 }
@@ -90,7 +95,7 @@ func (*driver) Name() string {
 
 func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	var (
-		sck   socket
+		sck   = socket{typ: typ}
 		err   error
 		ctype C.int
 	)

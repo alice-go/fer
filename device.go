@@ -20,10 +20,6 @@ import (
 	_ "github.com/sbinet-alice/fer/mq/zeromq"  // load zeromq plugin
 )
 
-// FIXME(sbinet) use a per-device stdout
-//var stdout = bufio.NewWriter(os.Stdout)
-var stdout = os.Stdout
-
 type channel struct {
 	cfg config.Channel
 	sck mq.Socket
@@ -146,7 +142,7 @@ func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader,
 	}
 
 	if w == nil {
-		w = stdout
+		w = os.Stdout
 	}
 	msg := log.New(w, dcfg.Name()+": ", 0)
 	msg.Printf("--- new device: %v\n", dcfg)

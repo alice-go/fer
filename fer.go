@@ -21,6 +21,9 @@ func Main(dev Device) error {
 		return err
 	}
 
+	if cfg.Control == "" {
+		cfg.Control = "static"
+	}
 	return runDevice(context.Background(), cfg, dev, os.Stdin, os.Stdout)
 }
 
@@ -122,8 +125,8 @@ func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, 
 		return err
 	}
 
-	if true {
-		sys.cmds <- CmdInitDevice
+	sys.cmds <- CmdInitDevice
+	if cfg.Control == "static" {
 		sys.cmds <- CmdRun
 	}
 

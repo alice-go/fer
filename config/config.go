@@ -16,9 +16,10 @@ import (
 // all flags are defined and before flags are accessed by the program.
 func Parse() (Config, error) {
 	var (
-		id    = flag.String("id", "", "device ID")
-		trans = flag.String("transport", "zeromq", "transport mechanism to use (zeromq, nanomsg, go-chan, ...")
-		mq    = flag.String("mq-config", "", "path to JSON file holding device configuration")
+		id      = flag.String("id", "", "device ID")
+		trans   = flag.String("transport", "zeromq", "transport mechanism to use (zeromq, nanomsg, go-chan, ...")
+		mq      = flag.String("mq-config", "", "path to JSON file holding device configuration")
+		control = flag.String("control", "interactive", "starts device in interactive/static mode")
 	)
 
 	flag.Parse()
@@ -26,6 +27,7 @@ func Parse() (Config, error) {
 	cfg := Config{
 		ID:        *id,
 		Transport: *trans,
+		Control:   *control,
 	}
 
 	f, err := os.Open(*mq)
@@ -47,6 +49,7 @@ type Config struct {
 	Options   Options `json:"fairMQOptions"`
 	ID        string  `json:"fer_id,omitempty"`
 	Transport string  `json:"fer_transport,omitempty"` // zeromq, nanomsg, chan
+	Control   string  `json:"fer_control,omitempty"`
 }
 
 // Options holds the configuration of a Fer MQ program.

@@ -52,6 +52,7 @@ func TestSamplerProcessorSink(t *testing.T) {
 			}
 
 			cfg := config.Config{
+				Control:   "interactive",
 				Transport: transport,
 				Options: config.Options{
 					Devices: []config.Device{

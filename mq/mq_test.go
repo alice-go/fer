@@ -209,3 +209,80 @@ func TestReqRep(t *testing.T) {
 		})
 	}
 }
+
+func TestPubSub(t *testing.T) {
+	for i := range drivers {
+		transport := drivers[i]
+		t.Run("transport="+transport, func(t *testing.T) {
+
+			const (
+				N    = 5
+				tmpl = "[[data]]"
+			)
+
+			port, err := getTCPPort()
+			if err != nil {
+				t.Fatalf("error getting free TCP port: %v\n", err)
+			}
+
+			drv, err := mq.Open(transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sub, err := drv.NewSocket(mq.Sub)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer sub.Close()
+
+			pub, err := drv.NewSocket(mq.Pub)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer pub.Close()
+
+			done := make(chan int)
+			go func() {
+				err := pub.Listen("tcp://*:" + port)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for {
+					select {
+					case <-done:
+						return
+					default:
+						err = pub.Send([]byte(tmpl))
+						if err != nil {
+							t.Fatalf("error sending data[%d]: %v\n", i, err)
+						}
+					}
+				}
+			}()
+
+			err = sub.Dial("tcp://localhost:" + port)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < N; i++ {
+				msg, err := sub.Recv()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, want := string(msg), tmpl; got != want {
+					t.Errorf("pub-sub[%d]: got=%q want=%q\n", i, got, want)
+				}
+			}
+			done <- 1
+
+			err = pub.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = sub.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}

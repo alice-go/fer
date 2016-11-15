@@ -147,6 +147,14 @@ func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 		return nil, getError(1)
 	}
 
+	switch typ {
+	case mq.Sub, mq.XSub:
+		o := C.zmq_setsockopt(sck.c, C.ZMQ_SUBSCRIBE, nil, 0)
+		if o != 0 {
+			err = getError(o)
+		}
+	}
+
 	return &sck, err
 }
 

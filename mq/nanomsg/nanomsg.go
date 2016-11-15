@@ -45,6 +45,9 @@ func (driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	switch typ {
 	case mq.Sub, mq.XSub:
 		sck, err = sub.NewSocket()
+		if err == nil {
+			err = sck.SetOption(mangos.OptionSubscribe, []byte(""))
+		}
 	case mq.Pub, mq.XPub:
 		sck, err = pub.NewSocket()
 	case mq.Push:

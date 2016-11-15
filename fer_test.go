@@ -22,99 +22,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func getTCPPort() (string, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return "", err
-	}
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
-}
+var testDrivers = []string{"zeromq", "nanomsg"}
 
 func TestSamplerProcessorSink(t *testing.T) {
-	for _, n := range []string{"zeromq", "nanomsg"} {
+	for _, n := range testDrivers {
 		transport := n
 		t.Run("transport="+transport, func(t *testing.T) {
 
+			cfg, err := getSPSConfig(transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+
 			stdin := os.Stdin
-
-			port1, err := getTCPPort()
-			if err != nil {
-				t.Fatalf("error getting free TCP port: %v\n", err)
-			}
-			port2, err := getTCPPort()
-			if err != nil {
-				t.Fatalf("error getting free TCP port: %v\n", err)
-			}
-
-			cfg := config.Config{
-				Control:   "interactive",
-				Transport: transport,
-				Options: config.Options{
-					Devices: []config.Device{
-						{
-							ID: "sampler1",
-							Channels: []config.Channel{
-								{
-									Name: "data1",
-									Sockets: []config.Socket{
-										{
-											Type:    "push",
-											Method:  "bind",
-											Address: "tcp://*:" + port1,
-										},
-									},
-								},
-							},
-						},
-						{
-							Key: "processor",
-							Channels: []config.Channel{
-								{
-									Name: "data1",
-									Sockets: []config.Socket{
-										{
-											Type:    "pull",
-											Method:  "connect",
-											Address: "tcp://localhost:" + port1,
-										},
-									},
-								},
-								{
-									Name: "data2",
-									Sockets: []config.Socket{
-										{
-											Type:    "push",
-											Method:  "connect",
-											Address: "tcp://localhost:" + port2,
-										},
-									},
-								},
-							},
-						},
-						{
-							ID: "sink1",
-							Channels: []config.Channel{
-								{
-									Name: "data2",
-									Sockets: []config.Socket{
-										{
-											Type:    "pull",
-											Method:  "bind",
-											Address: "tcp://*:" + port2,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-
 			stdout := new(bytes.Buffer)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -331,4 +251,198 @@ func (dev *sink) Pause(ctl Controler) error {
 
 func (dev *sink) Reset(ctl Controler) error {
 	return nil
+}
+
+func TestDeviceFSM(t *testing.T) {
+	for _, n := range testDrivers {
+		transport := n
+		for _, cmds := range [][]Cmd{
+			{CmdInitDevice, CmdRun, CmdPause, CmdStop, CmdEnd},
+			{CmdInitDevice, CmdRun, CmdStop, CmdEnd},
+			{CmdInitDevice, CmdRun, CmdEnd},
+			{CmdInitDevice, CmdEnd},
+			{CmdEnd},
+		} {
+			cmds := cmds
+			list := make([]string, len(cmds))
+			for i := range cmds {
+				list[i] = cmds[i].String()
+			}
+
+			t.Run("transport="+transport+";cmds="+strings.Join(list, "|"), func(t *testing.T) {
+
+				const N = 1024
+				cfg, err := getSPSConfig(transport)
+				if err != nil {
+					t.Fatal(err)
+				}
+				cfg.ID = "sampler1"
+
+				stdin := new(bytes.Buffer)
+				stdout := new(bytes.Buffer)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				grp, ctx := errgroup.WithContext(ctx)
+				dev1, err := newDevice(ctx, cfg, &sampler{n: N}, stdin, stdout)
+				if err != nil {
+					t.Fatalf("error creating device %q: %v\n", cfg.ID, err)
+				}
+				grp.Go(func() error { return dev1.run(ctx) })
+
+				for _, cmd := range cmds {
+					dev1.cmds <- cmd
+				}
+
+				err = grp.Wait()
+				if err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+}
+
+func TestDeviceFSMFromStdin(t *testing.T) {
+	for _, n := range testDrivers {
+		transport := n
+		for _, cmds := range [][]byte{
+			{'i', 'r', 'p', 's', 'q'},
+			{'i', 'r', 's', 'q'},
+			{'i', 'r', 'q'},
+			{'i', 'q'},
+			{'q'},
+		} {
+			cmds := cmds
+			list := make([]string, len(cmds))
+			for i := range cmds {
+				list[i] = string(cmds[i])
+			}
+
+			t.Run("transport="+transport+";cmds="+strings.Join(list, "|"), func(t *testing.T) {
+
+				const N = 1024
+				cfg, err := getSPSConfig(transport)
+				if err != nil {
+					t.Fatal(err)
+				}
+				cfg.ID = "sampler1"
+
+				stdin := new(bytes.Buffer)
+				stdout := new(bytes.Buffer)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+
+				grp, ctx := errgroup.WithContext(ctx)
+				dev1, err := newDevice(ctx, cfg, &sampler{n: N}, stdin, stdout)
+				if err != nil {
+					t.Fatalf("error creating device %q: %v\n", cfg.ID, err)
+				}
+				grp.Go(func() error { return dev1.run(ctx) })
+
+				for _, cmd := range cmds {
+					stdin.Write([]byte{cmd, '\n'})
+				}
+
+				err = grp.Wait()
+				if err != nil {
+					t.Fatal(err)
+				}
+			})
+		}
+	}
+}
+
+func getTCPPort() (string, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
+	if err != nil {
+		return "", err
+	}
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		return "", err
+	}
+	defer l.Close()
+	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
+}
+
+func getSPSConfig(transport string) (config.Config, error) {
+	var cfg config.Config
+
+	port1, err := getTCPPort()
+	if err != nil {
+		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
+	}
+	port2, err := getTCPPort()
+	if err != nil {
+		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
+	}
+
+	cfg = config.Config{
+		Control:   "interactive",
+		Transport: transport,
+		Options: config.Options{
+			Devices: []config.Device{
+				{
+					ID: "sampler1",
+					Channels: []config.Channel{
+						{
+							Name: "data1",
+							Sockets: []config.Socket{
+								{
+									Type:    "push",
+									Method:  "bind",
+									Address: "tcp://*:" + port1,
+								},
+							},
+						},
+					},
+				},
+				{
+					Key: "processor",
+					Channels: []config.Channel{
+						{
+							Name: "data1",
+							Sockets: []config.Socket{
+								{
+									Type:    "pull",
+									Method:  "connect",
+									Address: "tcp://localhost:" + port1,
+								},
+							},
+						},
+						{
+							Name: "data2",
+							Sockets: []config.Socket{
+								{
+									Type:    "push",
+									Method:  "connect",
+									Address: "tcp://localhost:" + port2,
+								},
+							},
+						},
+					},
+				},
+				{
+					ID: "sink1",
+					Channels: []config.Channel{
+						{
+							Name: "data2",
+							Sockets: []config.Socket{
+								{
+									Type:    "pull",
+									Method:  "bind",
+									Address: "tcp://*:" + port2,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return cfg, nil
 }

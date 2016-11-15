@@ -150,7 +150,7 @@ func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader,
 		name:  dcfg.Name(),
 		cfg:   dcfg,
 		chans: make(map[string][]channel),
-		done:  make(chan Cmd),
+		done:  nil,
 		quit:  make(chan error),
 		cmds:  make(chan Cmd),
 		msgs:  make(map[msgAddr]chan Msg),
@@ -184,22 +184,27 @@ loop:
 			err = ctx.Err()
 			break loop
 		case cmd := <-dev.cmds:
-			// dev.msg.Printf("received command %d\n", int(cmd))
+			// dev.msg.Printf("received command %v\n", cmd)
 			switch cmd {
 			case CmdInitDevice:
 				dev.initDevice(ctx)
 			case CmdInitTask:
 			case CmdRun:
+				dev.done = make(chan Cmd)
 				go dev.runDevice(ctx)
 			case CmdPause:
 			case CmdStop:
 			case CmdResetTask:
 			case CmdResetDevice:
 			case CmdEnd:
-				dev.done <- cmd
+				if dev.done != nil {
+					dev.done <- cmd
+				}
 				break loop
 			case CmdError:
-				dev.done <- cmd
+				if dev.done != nil {
+					dev.done <- cmd
+				}
 				break loop
 			default:
 				panic(fmt.Errorf("fer: invalid cmd value (command=%d)", int(cmd)))

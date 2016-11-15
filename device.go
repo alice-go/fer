@@ -97,11 +97,11 @@ func (ch *channel) recv() Msg {
 	}
 }
 
-func newChannel(drv mq.Driver, cfg config.Channel, dev *device) (channel, error) {
+func newChannel(drv mq.Driver, cfg config.Channel, dev *device, w io.Writer) (channel, error) {
 	ch := channel{
 		cmd: make(chan Cmd),
 		cfg: cfg,
-		log: log.New(stdout, dev.name+"."+cfg.Name+": ", 0),
+		log: log.New(w, dev.name+"."+cfg.Name+": ", 0),
 	}
 	// FIXME(sbinet) support multiple sockets to send/recv to/from
 	if len(cfg.Sockets) != 1 {
@@ -135,7 +135,7 @@ type device struct {
 	usr Device
 }
 
-func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader) (*device, error) {
+func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader, w io.Writer) (*device, error) {
 	drv, err := mq.Open(cfg.Transport)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,10 @@ func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader)
 		return nil, fmt.Errorf("fer: no such device %q", cfg.ID)
 	}
 
-	msg := log.New(stdout, dcfg.Name()+": ", 0)
+	if w == nil {
+		w = stdout
+	}
+	msg := log.New(w, dcfg.Name()+": ", 0)
 	msg.Printf("--- new device: %v\n", dcfg)
 	dev := device{
 		name:  dcfg.Name(),
@@ -161,7 +164,7 @@ func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader)
 
 	for _, opt := range dcfg.Channels {
 		// dev.msg.Printf("--- new channel: %v\n", opt)
-		ch, err := newChannel(drv, opt, &dev)
+		ch, err := newChannel(drv, opt, &dev, w)
 		if err != nil {
 			return nil, err
 		}

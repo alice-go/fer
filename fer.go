@@ -21,7 +21,7 @@ func Main(dev Device) error {
 		return err
 	}
 
-	return runDevice(context.Background(), cfg, dev, os.Stdin)
+	return runDevice(context.Background(), cfg, dev, os.Stdin, os.Stdout)
 }
 
 // Device is a handle to what users get to run via the Fer toolkit.
@@ -116,8 +116,8 @@ func (cmd Cmd) String() string {
 	panic(fmt.Errorf("fer: invalid Cmd value (command=%d)", int(cmd)))
 }
 
-func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader) error {
-	sys, err := newDevice(ctx, cfg, dev, r)
+func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, w io.Writer) error {
+	sys, err := newDevice(ctx, cfg, dev, r, w)
 	if err != nil {
 		return err
 	}

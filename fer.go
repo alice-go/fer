@@ -2,7 +2,67 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package fer provides a basic framework to run FairMQ-like tasks.
+// Package fer provides a basic framework to run FairMQ-like processes.
+// Clients create fer Devices that exchange data via fer message queue sockets.
+//
+// A client device might look like so:
+//
+//   import "github.com/sbinet-alice/fer"
+//   import "github.com/sbinet-alice/fer/config"
+//   type myDevice struct {
+//       cfg  config.Device
+//       imsg chan fer.Msg
+//       omsg chan fer.Msg
+//   }
+//
+// A device needs to implement the fer.Device interface:
+//  func (dev *myDevice) Configure(cfg config.Device) error { ... }
+//  func (dev *myDevice) Init(ctl fer.Controler)  error { ... }
+//  func (dev *myDevice) Run(ctl fer.Controler)   error { ... }
+//  func (dev *myDevice) Pause(ctl fer.Controler) error { ... }
+//  func (dev *myDevice) Reset(ctl fer.Controler) error { ... }
+//
+// Typically, the Configure method is used to retrieve the configuration
+// associated with the client's device.
+// The Init method is used to retrieve the channels of input/output data messages.
+// The Run method is an infinite for-loop, selecting on these input/output data
+// messages.
+// This infinite for-loop will also NEED to listen for the Controler.Done()
+// channel to exit that for-loop.
+//
+// e.g.:
+//
+//  func (dev *myDevice) Init(ctl fer.Controler) error {
+//      imsg, err := ctl.Chan("data-1", 0)
+//      omsg, err := ctl.Chan("data-2", 0)
+//      dev.imsg = imsg
+//      dev.omsg = omsg
+//      return nil
+//  }
+//
+//  func (dev *myDevice) Run(ctl fer.Controler) error {
+//      for {
+//          select {
+//          case data := <-dev.imsg:
+//              dev.omsg <- bytes.Repeat(data, 2)
+//          case <-ctl.Done():
+//              return nil
+//          }
+//      }
+//  }
+//
+// Then, to create an executable:
+//
+//  package main
+//
+//  func main() {
+//      err := fer.Main(&myDevice{})
+//      if err != nil {
+//          log.Fatal(err)
+//      }
+//  }
+//
+// And voila.
 package fer
 
 import (

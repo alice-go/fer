@@ -96,10 +96,6 @@ func TestPushPull(t *testing.T) {
 						t.Fatalf("error sending data[%d]: %v\n", i, err)
 					}
 				}
-				err = push.Close()
-				if err != nil {
-					t.Fatal(err)
-				}
 				wg.Done()
 			}()
 
@@ -116,11 +112,15 @@ func TestPushPull(t *testing.T) {
 					t.Errorf("push-pull[%d]: got=%q want=%q\n", i, got, want)
 				}
 			}
+			wg.Wait()
 			err = pull.Close()
 			if err != nil {
 				t.Fatal(err)
 			}
-			wg.Wait()
+			err = push.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }

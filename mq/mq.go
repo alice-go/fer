@@ -31,6 +31,12 @@ type Socket interface {
 
 	// Type returns the type of this Socket (PUB, SUB, ...)
 	Type() SocketType
+
+	// GetOption is used to retrieve an option for a socket.
+	//GetOption(name string) (interface{}, error)
+
+	// SetOption is used to set an option for a socket.
+	//SetOption(name string, value interface{}) error
 }
 
 // SocketType describes the type of a socket (PUB, SUB, PUSH, PULL, ...)

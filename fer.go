@@ -62,7 +62,20 @@
 //      }
 //  }
 //
-// And voila.
+// Build it as usual and run like so:
+//
+//  $> go build -o my-device
+//  $> ./my-device --help
+//  Usage of my-device:
+//    -control string
+//      	starts device in interactive/static mode (default "interactive")
+//    -id string
+//      	device ID
+//    -mq-config string
+//      	path to JSON file holding device configuration
+//    -transport string
+//      	transport mechanism to use (zeromq, nanomsg, go-chan, ...) (default "zeromq")
+//  $> ./my-device --id my-id --mq-config ./path/to/config.json
 package fer
 
 import (

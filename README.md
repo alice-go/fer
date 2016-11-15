@@ -16,6 +16,8 @@
 $> go get github.com/sbinet-alice/fer/...
 ```
 
+*NOTE:* you need at least `go1.7`.
+
 ## Documentation
 
 Documentation is available on [godoc](https://godoc.org/github.com/sbinet-alice/fer).

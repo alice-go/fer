@@ -6,6 +6,8 @@ package mq_test
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"sync"
 	"testing"
 
@@ -35,128 +37,90 @@ func TestOpen(t *testing.T) {
 	}
 }
 
-func TestPushPullNN(t *testing.T) {
-	const (
-		N    = 5
-		tmpl = "data-%02d"
-		port = "6666"
-	)
+var drivers = []string{"zeromq", "nanomsg"}
 
-	drv, err := mq.Open("nanomsg")
+func getTCPPort() (string, error) {
+	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
-		t.Fatal(err)
+		return "", err
 	}
-	pull, err := drv.NewSocket(mq.Pull)
+	l, err := net.ListenTCP("tcp", addr)
 	if err != nil {
-		t.Fatal(err)
+		return "", err
 	}
-	defer pull.Close()
-
-	push, err := drv.NewSocket(mq.Push)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer push.Close()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		err := push.Dial("tcp://localhost:" + port)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := 0; i < N; i++ {
-			err = push.Send([]byte(fmt.Sprintf(tmpl, i)))
-			if err != nil {
-				t.Fatalf("error sending data[%d]: %v\n", i, err)
-			}
-		}
-		err = push.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-		wg.Done()
-	}()
-
-	err = pull.Listen("tcp://*:" + port)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for i := 0; i < N; i++ {
-		msg, err := pull.Recv()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got, want := string(msg), fmt.Sprintf(tmpl, i); got != want {
-			t.Errorf("push-pull[%d]: got=%q want=%q\n", i, got, want)
-		}
-	}
-	err = pull.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	wg.Wait()
+	defer l.Close()
+	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
 }
 
-func TestPushPullZMQ(t *testing.T) {
-	const (
-		N    = 5
-		tmpl = "data-%02d"
-		port = "5555"
-	)
+func TestPushPull(t *testing.T) {
+	for i := range drivers {
+		transport := drivers[i]
+		t.Run("transport="+transport, func(t *testing.T) {
 
-	drv, err := mq.Open("zeromq")
-	if err != nil {
-		t.Fatal(err)
-	}
-	pull, err := drv.NewSocket(mq.Pull)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer pull.Close()
+			const (
+				N    = 5
+				tmpl = "data-%02d"
+			)
 
-	push, err := drv.NewSocket(mq.Push)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer push.Close()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		err := push.Dial("tcp://localhost:" + port)
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := 0; i < N; i++ {
-			err = push.Send([]byte(fmt.Sprintf(tmpl, i)))
+			port, err := getTCPPort()
 			if err != nil {
-				t.Fatalf("error sending data[%d]: %v\n", i, err)
+				t.Fatalf("error getting free TCP port: %v\n", err)
 			}
-		}
-		err = push.Close()
-		if err != nil {
-			t.Fatal(err)
-		}
-		wg.Done()
-	}()
 
-	err = pull.Listen("tcp://*:" + port)
-	if err != nil {
-		t.Fatal(err)
+			drv, err := mq.Open(transport)
+			if err != nil {
+				t.Fatal(err)
+			}
+			pull, err := drv.NewSocket(mq.Pull)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer pull.Close()
+
+			push, err := drv.NewSocket(mq.Push)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer push.Close()
+
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				err := push.Dial("tcp://localhost:" + port)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for i := 0; i < N; i++ {
+					err = push.Send([]byte(fmt.Sprintf(tmpl, i)))
+					if err != nil {
+						t.Fatalf("error sending data[%d]: %v\n", i, err)
+					}
+				}
+				err = push.Close()
+				if err != nil {
+					t.Fatal(err)
+				}
+				wg.Done()
+			}()
+
+			err = pull.Listen("tcp://*:" + port)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < N; i++ {
+				msg, err := pull.Recv()
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, want := string(msg), fmt.Sprintf(tmpl, i); got != want {
+					t.Errorf("push-pull[%d]: got=%q want=%q\n", i, got, want)
+				}
+			}
+			err = pull.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			wg.Wait()
+		})
 	}
-	for i := 0; i < N; i++ {
-		msg, err := pull.Recv()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got, want := string(msg), fmt.Sprintf(tmpl, i); got != want {
-			t.Errorf("push-pull[%d]: got=%q want=%q\n", i, got, want)
-		}
-	}
-	err = pull.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-	wg.Wait()
 }

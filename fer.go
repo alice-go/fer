@@ -199,9 +199,7 @@ func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, 
 	}
 
 	sys.cmds <- CmdInitDevice
-	if cfg.Control == "static" {
-		sys.cmds <- CmdRun
-	}
+	sys.cmds <- CmdRun
 
 	return sys.run(ctx)
 }

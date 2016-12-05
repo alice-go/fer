@@ -1,6 +1,7 @@
 # fer
 
 [![GoDoc](https://godoc.org/github.com/sbinet-alice/fer?status.svg)](https://godoc.org/github.com/sbinet-alice/fer)
+[![Build Status](https://travis-ci.org/sbinet-alice/fer.svg?branch=master)](https://travis-ci.org/sbinet-alice/fer)
 
 `fer` is a simple reimplementation of [FairMQ](https://github.com/FairRootGroup/FairRoot/tree/master/fairmq) in [Go](https://golang.org).
 

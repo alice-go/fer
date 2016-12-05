@@ -52,14 +52,6 @@ func (dev *processor) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *processor) Pause(ctl fer.Controler) error {
-	return nil
-}
-
-func (dev *processor) Reset(ctl fer.Controler) error {
-	return nil
-}
-
 func main() {
 	err := fer.Main(&processor{})
 	if err != nil {

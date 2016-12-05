@@ -42,14 +42,6 @@ func (dev *sampler) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *sampler) Pause(ctl fer.Controler) error {
-	return nil
-}
-
-func (dev *sampler) Reset(ctl fer.Controler) error {
-	return nil
-}
-
 func main() {
 	err := fer.Main(&sampler{})
 	if err != nil {

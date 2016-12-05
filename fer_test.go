@@ -148,14 +148,6 @@ func (dev *sampler) Run(ctl Controler) error {
 	return nil
 }
 
-func (dev *sampler) Pause(ctl Controler) error {
-	return nil
-}
-
-func (dev *sampler) Reset(ctl Controler) error {
-	return nil
-}
-
 type processor struct {
 	cfg    config.Device
 	idatac chan Msg
@@ -198,14 +190,6 @@ func (dev *processor) Run(ctl Controler) error {
 	}
 }
 
-func (dev *processor) Pause(ctl Controler) error {
-	return nil
-}
-
-func (dev *processor) Reset(ctl Controler) error {
-	return nil
-}
-
 type sink struct {
 	cfg   config.Device
 	datac chan Msg
@@ -243,14 +227,6 @@ func (dev *sink) Run(ctl Controler) error {
 			close(dev.sum)
 		}
 	}
-}
-
-func (dev *sink) Pause(ctl Controler) error {
-	return nil
-}
-
-func (dev *sink) Reset(ctl Controler) error {
-	return nil
 }
 
 func TestDeviceFSM(t *testing.T) {

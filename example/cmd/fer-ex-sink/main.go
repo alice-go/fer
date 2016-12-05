@@ -42,14 +42,6 @@ func (dev *sink) Run(ctl fer.Controler) error {
 	}
 }
 
-func (dev *sink) Pause(ctl fer.Controler) error {
-	return nil
-}
-
-func (dev *sink) Reset(ctl fer.Controler) error {
-	return nil
-}
-
 func main() {
 	err := fer.Main(&sink{})
 	if err != nil {

@@ -287,11 +287,14 @@ func (dev *device) Printf(format string, v ...interface{}) {
 }
 
 func (dev *device) initDevice(ctx context.Context) {
-	dev.mu.Lock()
-	err := dev.usr.Init(dev)
-	dev.mu.Unlock()
-	if err != nil {
-		dev.quit <- err
+	usr, ok := dev.usr.(DevIniter)
+	if ok {
+		dev.mu.Lock()
+		err := usr.Init(dev)
+		dev.mu.Unlock()
+		if err != nil {
+			dev.quit <- err
+		}
 	}
 }
 
@@ -313,9 +316,11 @@ func (dev *device) stopDevice(ctx context.Context) {
 }
 
 func (dev *device) run(ctx context.Context) error {
-	err := dev.usr.Configure(dev.cfg)
-	if err != nil {
-		return err
+	if usr, ok := dev.usr.(DevConfigurer); ok {
+		err := usr.Configure(dev.cfg)
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, chans := range dev.chans {

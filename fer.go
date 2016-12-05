@@ -16,9 +16,11 @@
 //   }
 //
 // A device needs to implement the fer.Device interface:
+//  func (dev *myDevice) Run(ctl fer.Controler)   error { ... }
+//
+// Optionnally, the following methods may be also implemented:
 //  func (dev *myDevice) Configure(cfg config.Device) error { ... }
 //  func (dev *myDevice) Init(ctl fer.Controler)  error { ... }
-//  func (dev *myDevice) Run(ctl fer.Controler)   error { ... }
 //  func (dev *myDevice) Pause(ctl fer.Controler) error { ... }
 //  func (dev *myDevice) Reset(ctl fer.Controler) error { ... }
 //
@@ -104,20 +106,36 @@ func Main(dev Device) error {
 //
 // Devices are configured according to command-line flags and a JSON
 // configuration file.
-// Clients should implement the Run method to receive and send data via
+// Clients need to implement the Run method to receive and send data via
 // the Controler data channels.
 type Device interface {
-	// Configure hands a device its configuration.
-	Configure(cfg config.Device) error
-	// Init gives a chance to the device to initialize internal
-	// data structures, retrieve channels to input/output data.
-	Init(ctl Controler) error
 	// Run is where the device's main activity happens.
 	// Run should loop forever, until the Controler.Done() channel says
 	// otherwise.
 	Run(ctl Controler) error
+}
+
+// DevConfigurer configures a fer device.
+type DevConfigurer interface {
+	// Configure hands a device its configuration.
+	Configure(cfg config.Device) error
+}
+
+// DevIniter initializes a fer device.
+type DevIniter interface {
+	// Init gives a chance to the device to initialize internal
+	// data structures, retrieve channels to input/output data.
+	Init(ctl Controler) error
+}
+
+// DevPauser pauses the execution of a fer device.
+type DevPauser interface {
 	// Pause pauses the device's execution.
 	Pause(ctl Controler) error
+}
+
+// DevReseter resets a fer device.
+type DevReseter interface {
 	// Reset resets the device's internal state.
 	Reset(ctl Controler) error
 }

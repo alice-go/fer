@@ -102,6 +102,11 @@ func Main(dev Device) error {
 	return runDevice(context.Background(), cfg, dev, os.Stdin, os.Stdout)
 }
 
+// RunDevice runs a device's execution, managing its state.
+func RunDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, w io.Writer) error {
+	return runDevice(ctx, cfg, dev, r, w)
+}
+
 // Device is a handle to what users get to run via the Fer toolkit.
 //
 // Devices are configured according to command-line flags and a JSON

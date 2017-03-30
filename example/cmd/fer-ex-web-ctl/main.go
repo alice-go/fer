@@ -1,4 +1,4 @@
-// Copyright 2016 The fer Authors.  All rights reserved.
+// Copyright 2017 The fer Authors.  All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -7,7 +7,7 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
+	"crypto/rand"
 	"flag"
 	"fmt"
 	"image/color"
@@ -15,52 +15,172 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
-	"net"
 	"net/http"
-	"strconv"
+	_ "net/http/pprof"
 	"strings"
+	"sync"
 	"time"
-
-	"go-hep.org/x/hep/hbook"
-	"go-hep.org/x/hep/hplot"
 
 	"github.com/gonum/plot/plotter"
 	"github.com/gonum/plot/vg"
 	"github.com/gonum/plot/vg/draw"
 	"github.com/gonum/plot/vg/vgsvg"
 	"github.com/sbinet-alice/fer"
-	"github.com/sbinet-alice/fer/config"
+	"go-hep.org/x/hep/hbook"
+	"go-hep.org/x/hep/hplot"
 	"golang.org/x/net/websocket"
 )
+
+const cookieName = "FER_WEB_SRV"
 
 var (
 	addr    = flag.String("addr", ":8080", "web server address")
 	timeout = flag.Duration("timeout", 20*time.Second, "timeout for fer-pods")
-	datac   = make(chan Data, 1024)
 )
+
+type server struct {
+	mu      sync.RWMutex
+	cookies map[string]*http.Cookie
+	datac   map[string]chan Data
+}
 
 func main() {
 	flag.Parse()
 
-	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/run", runHandler)
-	http.Handle("/data", websocket.Handler(dataHandler))
+	srv := newServer()
+
+	http.HandleFunc("/", srv.wrap(srv.rootHandler))
+	http.HandleFunc("/run", srv.wrap(srv.runHandler))
+	http.Handle("/data", websocket.Handler(srv.dataHandler))
 	log.Panic(http.ListenAndServe(*addr, nil))
 }
 
-func rootHandler(w http.ResponseWriter, r *http.Request) {
+func newServer() *server {
+	srv := server{
+		cookies: make(map[string]*http.Cookie),
+		datac:   make(map[string]chan Data),
+	}
+	go srv.run()
+	return &srv
+}
+
+func (srv *server) run() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for range ticker.C {
+		srv.gc()
+	}
+}
+
+func (srv *server) gc() {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	for name, cookie := range srv.cookies {
+		now := time.Now()
+		if now.After(cookie.Expires) {
+			close(srv.datac[name])
+			delete(srv.datac, name)
+			delete(srv.cookies, name)
+			cookie.MaxAge = -1
+		}
+	}
+}
+
+func (srv *server) wrap(fn http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := srv.setCookie(w, r)
+		if err != nil {
+			log.Printf("error retrieving cookie: %v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		fn(w, r)
+	}
+}
+
+func (srv *server) setCookie(w http.ResponseWriter, r *http.Request) error {
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+	cookie, err := r.Cookie(cookieName)
+	if err != nil && err != http.ErrNoCookie {
+		return err
+	}
+
+	if cookie != nil {
+		if v, ok := srv.datac[cookie.Value]; v == nil || !ok {
+			srv.datac[cookie.Value] = make(chan Data, 1024)
+			srv.cookies[cookie.Value] = cookie
+		}
+		return nil
+	}
+
+	secret := make([]byte, 256)
+	_, err = rand.Read(secret)
+	if err != nil {
+		return err
+	}
+
+	cookie = &http.Cookie{
+		Name:    cookieName,
+		Value:   string(secret),
+		Expires: time.Now().Add(24 * time.Hour),
+	}
+	srv.datac[cookie.Value] = make(chan Data, 1024)
+	srv.cookies[cookie.Value] = cookie
+	http.SetCookie(w, cookie)
+	return nil
+}
+
+func (srv *server) cookie(r *http.Request) (*http.Cookie, error) {
+	srv.mu.RLock()
+	defer srv.mu.RUnlock()
+	cookie, err := r.Cookie(cookieName)
+	if err != nil {
+		return nil, err
+	}
+
+	if cookie == nil {
+		return nil, http.ErrNoCookie
+	}
+	return srv.cookies[cookie.Value], nil
+}
+
+func (srv *server) data(r *http.Request) (chan Data, error) {
+	srv.mu.RLock()
+	defer srv.mu.RUnlock()
+	cookie, err := srv.cookie(r)
+	if err != nil {
+		return nil, err
+	}
+	return srv.datac[cookie.Value], nil
+}
+
+func (srv *server) rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, homePage)
 }
 
-func runHandler(w http.ResponseWriter, r *http.Request) {
+func (srv *server) runHandler(w http.ResponseWriter, r *http.Request) {
 	stdin := new(bytes.Buffer)
 	stdout := ioutil.Discard
+	datac, err := srv.data(r)
+	if err != nil {
+		log.Printf("error retrieving data channel: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	runHelloWorld(stdout, stdin, datac)
 	fmt.Fprintf(w, "ok\n")
 }
 
-func dataHandler(ws *websocket.Conn) {
+func (srv *server) dataHandler(ws *websocket.Conn) {
 	defer ws.Close()
+
+	datac, err := srv.data(ws.Request())
+	if err != nil {
+		log.Printf("error retrieving data channel: %v\n", err)
+		return
+	}
 
 	lines := make([]string, 0, 30)
 	h := hbook.NewH1D(100, 0, 5)
@@ -124,55 +244,6 @@ type Data struct {
 	quit  bool
 }
 
-type token struct {
-	msg []byte
-	beg time.Time
-	end time.Time
-}
-
-func newToken(msg string) token {
-	return token{
-		msg: []byte(msg),
-		beg: time.Now(),
-	}
-}
-
-func (tok token) Bytes() []byte {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, int64(len(tok.msg)))
-	buf.Write(tok.msg)
-
-	data, err := tok.beg.MarshalBinary()
-	if err != nil {
-		log.Printf("error marshaling token: %v", err)
-		return buf.Bytes()
-	}
-
-	binary.Write(buf, binary.LittleEndian, int64(len(data)))
-	buf.Write(data)
-
-	return buf.Bytes()
-}
-
-func tokenFrom(data []byte) token {
-	var tok token
-	tok.msg = make([]byte, int(binary.LittleEndian.Uint64(data[:8])))
-	data = data[8:]
-	copy(tok.msg, data[:len(tok.msg)])
-	data = data[len(tok.msg):]
-
-	n := int(binary.LittleEndian.Uint64(data[:8]))
-	data = data[8:]
-	err := tok.beg.UnmarshalBinary(data[:n])
-	if err != nil {
-		log.Printf("error unmarshaling token: %v", err)
-		return tok
-	}
-	data = data[n:]
-
-	return tok
-}
-
 func runHelloWorld(w io.Writer, r io.Reader, datac chan Data) {
 	cfg, err := getSPSConfig("nanomsg")
 	if err != nil {
@@ -184,10 +255,6 @@ func runHelloWorld(w io.Writer, r io.Reader, datac chan Data) {
 	dev2 := &processor{quit: make(chan int, 1)}
 	dev3 := &sampler{quit: make(chan int, 1)}
 
-	pr1 := new(bytes.Buffer)
-	pr2 := new(bytes.Buffer)
-	pr3 := new(bytes.Buffer)
-
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 
@@ -195,19 +262,19 @@ func runHelloWorld(w io.Writer, r io.Reader, datac chan Data) {
 	go func() {
 		cfg := cfg
 		cfg.ID = "sink1"
-		errc <- fer.RunDevice(ctx, cfg, dev1, pr1, w)
+		errc <- fer.RunDevice(ctx, cfg, dev1, r, w)
 	}()
 
 	go func() {
 		cfg := cfg
 		cfg.ID = "processor"
-		errc <- fer.RunDevice(ctx, cfg, dev2, pr2, w)
+		errc <- fer.RunDevice(ctx, cfg, dev2, r, w)
 	}()
 
 	go func() {
 		cfg := cfg
 		cfg.ID = "sampler1"
-		errc <- fer.RunDevice(ctx, cfg, dev3, pr3, w)
+		errc <- fer.RunDevice(ctx, cfg, dev3, r, w)
 	}()
 
 	i := 0
@@ -236,135 +303,6 @@ loop:
 	datac <- Data{Lines: fmt.Sprintf("%8d msgs processed by %q", dev1.n, dev1.cfg.Name())}
 	datac <- Data{Lines: "DONE"}
 	datac <- Data{quit: true}
-}
-
-type sampler struct {
-	cfg   config.Device
-	datac chan fer.Msg
-	n     int
-	quit  chan int
-}
-
-func (dev *sampler) Configure(cfg config.Device) error {
-	dev.cfg = cfg
-	return nil
-}
-
-func (dev *sampler) Init(ctl fer.Controler) error {
-	datac, err := ctl.Chan("data1", 0)
-	if err != nil {
-		return err
-	}
-
-	dev.datac = datac
-	return nil
-}
-
-func (dev *sampler) Run(ctl fer.Controler) error {
-	for {
-		select {
-		case dev.datac <- fer.Msg{Data: newToken("HELLO").Bytes()}:
-			dev.n++
-		case <-ctl.Done():
-			return nil
-		case <-dev.quit:
-			return nil
-		}
-	}
-}
-
-type processor struct {
-	cfg    config.Device
-	idatac chan fer.Msg
-	odatac chan fer.Msg
-	n      int
-	quit   chan int
-}
-
-func (dev *processor) Configure(cfg config.Device) error {
-	dev.cfg = cfg
-	return nil
-}
-
-func (dev *processor) Init(ctl fer.Controler) error {
-	idatac, err := ctl.Chan("data1", 0)
-	if err != nil {
-		return err
-	}
-
-	odatac, err := ctl.Chan("data2", 0)
-	if err != nil {
-		return err
-	}
-
-	dev.idatac = idatac
-	dev.odatac = odatac
-	return nil
-}
-
-func (dev *processor) Run(ctl fer.Controler) error {
-	for {
-		select {
-		case data := <-dev.idatac:
-			tok := tokenFrom(data.Data)
-			// ctl.Printf("received: %q\n", string(data.Data))
-			out := append([]byte(nil), tok.msg...)
-			out = append(out, []byte(" (modified by "+dev.cfg.Name()+")")...)
-			tok.msg = out
-			dev.odatac <- fer.Msg{Data: tok.Bytes()}
-			dev.n++
-		case <-ctl.Done():
-			return nil
-		case <-dev.quit:
-			return nil
-		}
-	}
-}
-
-type sink struct {
-	cfg   config.Device
-	datac chan fer.Msg
-	n     int
-	out   chan token
-	quit  chan int
-}
-
-func (dev *sink) Configure(cfg config.Device) error {
-	dev.cfg = cfg
-	return nil
-}
-
-func (dev *sink) Init(ctl fer.Controler) error {
-	datac, err := ctl.Chan("data2", 0)
-	if err != nil {
-		return err
-	}
-
-	dev.datac = datac
-	return nil
-}
-
-func (dev *sink) Run(ctl fer.Controler) error {
-	for {
-		select {
-		case data := <-dev.datac:
-			dev.n++
-			tok := tokenFrom(data.Data)
-			now := time.Now()
-			select {
-			case dev.out <- token{
-				msg: []byte(fmt.Sprintf("%s: %q", now.Format("2006-01-02 15:04:05.9"), tok.msg)),
-				beg: tok.beg,
-				end: now,
-			}:
-			default:
-			}
-		case <-ctl.Done():
-			return nil
-		case <-dev.quit:
-			return nil
-		}
-	}
 }
 
 const homePage = `<html>
@@ -433,95 +371,3 @@ const homePage = `<html>
 </body>
 </html>
 `
-
-func getTCPPort() (string, error) {
-	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-	if err != nil {
-		return "", err
-	}
-	l, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		return "", err
-	}
-	defer l.Close()
-	return strconv.Itoa(l.Addr().(*net.TCPAddr).Port), nil
-}
-
-func getSPSConfig(transport string) (config.Config, error) {
-	var cfg config.Config
-
-	port1, err := getTCPPort()
-	if err != nil {
-		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
-	}
-	port2, err := getTCPPort()
-	if err != nil {
-		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
-	}
-
-	cfg = config.Config{
-		Control:   "interactive",
-		Transport: transport,
-		Options: config.Options{
-			Devices: []config.Device{
-				{
-					ID: "sampler1",
-					Channels: []config.Channel{
-						{
-							Name: "data1",
-							Sockets: []config.Socket{
-								{
-									Type:    "push",
-									Method:  "bind",
-									Address: "tcp://*:" + port1,
-								},
-							},
-						},
-					},
-				},
-				{
-					Key: "processor",
-					Channels: []config.Channel{
-						{
-							Name: "data1",
-							Sockets: []config.Socket{
-								{
-									Type:    "pull",
-									Method:  "connect",
-									Address: "tcp://localhost:" + port1,
-								},
-							},
-						},
-						{
-							Name: "data2",
-							Sockets: []config.Socket{
-								{
-									Type:    "push",
-									Method:  "connect",
-									Address: "tcp://localhost:" + port2,
-								},
-							},
-						},
-					},
-				},
-				{
-					ID: "sink1",
-					Channels: []config.Channel{
-						{
-							Name: "data2",
-							Sockets: []config.Socket{
-								{
-									Type:    "pull",
-									Method:  "bind",
-									Address: "tcp://*:" + port2,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return cfg, nil
-}

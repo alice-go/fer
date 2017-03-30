@@ -43,7 +43,7 @@ func main() {
 	flag.Parse()
 
 	http.HandleFunc("/", rootHandler)
-	http.HandleFunc("/basic", basicHandler)
+	http.HandleFunc("/run", runHandler)
 	http.Handle("/data", websocket.Handler(dataHandler))
 	log.Panic(http.ListenAndServe(*addr, nil))
 }
@@ -52,13 +52,11 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, homePage)
 }
 
-func basicHandler(w http.ResponseWriter, r *http.Request) {
-	log.Printf("/basic...")
-	//stdout := new(bytes.Buffer)
+func runHandler(w http.ResponseWriter, r *http.Request) {
 	stdin := new(bytes.Buffer)
 	stdout := ioutil.Discard
 	runHelloWorld(stdout, stdin, datac)
-	fmt.Fprintf(w, "ok\n") //hello from /basic\n<code>%s</code>\n", string(stdout.Bytes()))
+	fmt.Fprintf(w, "ok\n")
 }
 
 func dataHandler(ws *websocket.Conn) {
@@ -387,7 +385,7 @@ const homePage = `<html>
 		plot.innerHTML = data["plot"];
 	};
 
-	function runBasic() {
+	function run() {
 		var sock = new WebSocket("ws://"+location.host+"/data");
 		sock.onopen = function(){};
 		sock.onclose = function(){console.log("closing...");};
@@ -396,7 +394,7 @@ const homePage = `<html>
 			update(data);
 		};
 		$.ajax({
-			url: "/basic",
+			url: "/run",
 			method: "POST",
 			processData: false,
 			contentData: false,
@@ -412,7 +410,7 @@ const homePage = `<html>
 <header class="w3-container w3-black">
     <h1>Control panel</h1>
 	<div class="w3-container">
-		<button class="w3-button w3-blue" onclick="runBasic();">Launch</button>
+		<button class="w3-button w3-blue" onclick="run();">Launch</button>
 	</div>
 </header>
 

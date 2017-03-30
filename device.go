@@ -16,8 +16,6 @@ import (
 
 	"github.com/sbinet-alice/fer/config"
 	"github.com/sbinet-alice/fer/mq"
-	_ "github.com/sbinet-alice/fer/mq/nanomsg" // load nanomsg plugin
-	_ "github.com/sbinet-alice/fer/mq/zeromq"  // load zeromq plugin
 )
 
 type channel struct {

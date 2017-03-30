@@ -182,6 +182,13 @@ loop:
 		select {
 		case <-ctx.Done():
 			err = ctx.Err()
+			if dev.done != nil {
+				if err == nil {
+					dev.done <- CmdEnd
+				} else {
+					dev.done <- CmdError
+				}
+			}
 			break loop
 		case cmd := <-dev.cmds:
 			// dev.msg.Printf("received command %v\n", cmd)

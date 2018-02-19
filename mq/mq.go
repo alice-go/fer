@@ -23,7 +23,7 @@ type Socket interface {
 	// Recv receives a complete message.
 	Recv() ([]byte, error)
 
-	// Listen connects alocal endpoint to the Socket.
+	// Listen connects a local endpoint to the Socket.
 	Listen(addr string) error
 
 	// Dial connects a remote endpoint to the Socket.

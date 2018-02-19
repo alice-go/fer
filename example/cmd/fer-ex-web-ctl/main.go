@@ -207,16 +207,10 @@ func (srv *server) dataHandler(ws *websocket.Conn) {
 }
 
 func plotToF(h *hbook.H1D) string {
-	pl, err := hplot.New()
-	if err != nil {
-		log.Panic(err)
-	}
+	pl := hplot.New()
 	pl.X.Label.Text = "Time of Flight (s)"
 
-	hh, err := hplot.NewH1D(h)
-	if err != nil {
-		log.Panic(err)
-	}
+	hh := hplot.NewH1D(h)
 	hh.LineStyle.Color = color.RGBA{255, 0, 0, 255}
 	hh.Infos.Style = hplot.HInfoSummary
 

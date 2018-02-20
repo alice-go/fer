@@ -29,6 +29,8 @@ func TestSamplerProcessorSink(t *testing.T) {
 		transport := n
 		t.Run("transport="+transport, func(t *testing.T) {
 
+			t.Parallel()
+
 			cfg, err := getSPSConfig(transport)
 			if err != nil {
 				t.Fatal(err)
@@ -247,6 +249,8 @@ func TestDeviceFSM(t *testing.T) {
 
 			t.Run("transport="+transport+";cmds="+strings.Join(list, "|"), func(t *testing.T) {
 
+				t.Parallel()
+
 				const N = 1024
 				cfg, err := getSPSConfig(transport)
 				if err != nil {
@@ -297,6 +301,8 @@ func TestDeviceFSMFromStdin(t *testing.T) {
 			}
 
 			t.Run("transport="+transport+";cmds="+strings.Join(list, "|"), func(t *testing.T) {
+
+				t.Parallel()
 
 				const N = 1024
 				cfg, err := getSPSConfig(transport)

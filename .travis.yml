@@ -4,14 +4,14 @@ go:
   - 1.9.x
   - 1.10.x
   - master
-
+os:
+  - linux
 matrix:
  fast_finish: true
  allow_failures:
    - go: master
 
-
-#sudo: false
+sudo: false
 
 notifications:
   email:
@@ -19,15 +19,3 @@ notifications:
       - binet@cern.ch
     on_success: change
     on_failure: always
-
-before_install:
-    - git clone git://github.com/jedisct1/libsodium.git
-    - ( cd libsodium && ./autogen.sh && ./configure && make && sudo make install && sudo ldconfig )
-    - git clone git://github.com/zeromq/libzmq.git
-    - ( cd libzmq && ./autogen.sh && ./configure && make && sudo make install && sudo ldconfig )
-
-script:
- - go get -d -t -v ./...
- - go install -v ./...
- - go test -v ./...
-

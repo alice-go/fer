@@ -6,152 +6,116 @@
 // to use mq.Sockets via ZeroMQ sockets.
 package zeromq
 
-// #cgo pkg-config: libzmq
-// #include "zmq.h"
-// #include <stdlib.h>
-// #include <string.h>
-import "C"
-
 import (
+	"context"
 	"fmt"
-	"unsafe"
+	"strings"
 
+	"github.com/go-zeromq/zmq4"
 	"github.com/sbinet-alice/fer/mq"
 )
 
-func getError(v C.int) error {
-	if v == 0 {
-		return nil
-	}
-	id := C.zmq_errno()
-	msg := C.zmq_strerror(id)
-	return fmt.Errorf(C.GoString(msg))
-}
-
 type socket struct {
-	c   unsafe.Pointer
+	zmq zmq4.Socket
 	typ mq.SocketType
 }
 
 func (s *socket) Close() error {
-	return getError(C.zmq_close(s.c))
+	if s.zmq != nil {
+		s.zmq.Close()
+		s.zmq = nil
+	}
+	return nil
 }
 
 func (s *socket) Send(data []byte) error {
-	cbuf := unsafe.Pointer(&data[0])
-	clen := C.size_t(len(data))
-	o := C.zmq_send(s.c, cbuf, clen, 0)
-	if o > 0 {
-		return nil
-	}
-	return getError(o)
+	return s.zmq.Send(zmq4.NewMsg(data))
 }
 
 func (s *socket) Recv() ([]byte, error) {
-	var msg C.zmq_msg_t
-	if i := C.zmq_msg_init(&msg); i != 0 {
-		return nil, getError(i)
-	}
-	defer C.zmq_msg_close(&msg)
-
-	size := C.zmq_msg_recv(&msg, s.c, 0)
-	if size < 0 {
-		return nil, getError(size)
-	}
-	if size == 0 {
-		return []byte{}, nil
-	}
-	data := make([]byte, int(size))
-	C.memcpy(unsafe.Pointer(&data[0]), C.zmq_msg_data(&msg), C.size_t(size))
-	err := getError(C.zmq_msg_close(&msg))
-	return data, err
+	msg, err := s.zmq.Recv()
+	return msg.Bytes(), err
 }
 
 func (s *socket) Listen(addr string) error {
-	caddr := C.CString(addr)
-	v := C.zmq_bind(s.c, caddr)
-	C.free(unsafe.Pointer(caddr))
-	return getError(v)
+	addr = globAddr(addr)
+	return s.zmq.Listen(addr)
 }
 
 func (s *socket) Dial(addr string) error {
-	caddr := C.CString(addr)
-	v := C.zmq_connect(s.c, caddr)
-	C.free(unsafe.Pointer(caddr))
-	return getError(v)
+	addr = globAddr(addr)
+	return s.zmq.Dial(addr)
 }
 
 func (s *socket) Type() mq.SocketType {
 	return s.typ
 }
 
-type driver struct {
-	ctx unsafe.Pointer
+func globAddr(addr string) string {
+	addr = strings.Replace(addr, "//*:", "//0.0.0.0:", 1)
+	addr = strings.Replace(addr, ":*", ":0", 1)
+	return addr
 }
 
-func (*driver) Name() string {
+type driver struct{}
+
+func (driver) Name() string {
 	return "zeromq"
 }
 
-func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
+func (drv driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	var (
-		sck   = socket{typ: typ}
-		err   error
-		ctype C.int
+		sck = socket{typ: typ}
+		err error
+		ctx = context.Background()
 	)
 
 	switch typ {
 	case mq.Sub:
-		ctype = C.ZMQ_SUB
+		sck.zmq = zmq4.NewSub(ctx)
 
 	case mq.XSub:
-		ctype = C.ZMQ_XSUB
+		return nil, fmt.Errorf("mq/zeromq: mq.XSub not implemented")
 
 	case mq.Pub:
-		ctype = C.ZMQ_PUB
+		sck.zmq = zmq4.NewPub(ctx)
 
 	case mq.XPub:
-		ctype = C.ZMQ_XPUB
+		return nil, fmt.Errorf("mq/zeromq: mq.XPub not implemented")
 
 	case mq.Push:
-		ctype = C.ZMQ_PUSH
+		sck.zmq = zmq4.NewPush(ctx)
 
 	case mq.Pull:
-		ctype = C.ZMQ_PULL
+		sck.zmq = zmq4.NewPull(ctx)
 
 	case mq.Req:
-		ctype = C.ZMQ_REQ
+		sck.zmq = zmq4.NewReq(ctx)
 
 	case mq.Dealer:
-		ctype = C.ZMQ_DEALER
+		return nil, fmt.Errorf("mq/zeromq: mq.Dealer not implemented")
 
 	case mq.Rep:
-		ctype = C.ZMQ_REP
+		sck.zmq = zmq4.NewRep(ctx)
 
 	case mq.Router:
-		ctype = C.ZMQ_ROUTER
+		return nil, fmt.Errorf("mq/zeromq: mq.Router not implemented")
 
 	case mq.Pair:
-		ctype = C.ZMQ_PAIR
+		return nil, fmt.Errorf("mq/zeromq: mq.Pair not implemented")
 
 	case mq.Bus:
-		return nil, fmt.Errorf("mq/zeromq: fer.Bus not implemented")
+		return nil, fmt.Errorf("mq/zeromq: mq.Bus not implemented")
 
 	default:
 		return nil, fmt.Errorf("mq/zeromq: invalid socket type %v (%d)", typ, int(typ))
 	}
 
-	sck.c = C.zmq_socket(drv.ctx, ctype)
-
-	if sck.c == nil {
-		return nil, getError(1)
-	}
-
 	switch typ {
 	case mq.Sub, mq.XSub:
-		o := C.zmq_setsockopt(sck.c, C.ZMQ_SUBSCRIBE, nil, 0)
-		if o != 0 {
-			err = getError(o)
+		err = sck.zmq.SetOption(zmq4.OptionSubscribe, "")
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -160,6 +124,5 @@ func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 
 func init() {
 	var drv driver
-	drv.ctx = C.zmq_ctx_new()
-	mq.Register("zeromq", &drv)
+	mq.Register("zeromq", drv)
 }

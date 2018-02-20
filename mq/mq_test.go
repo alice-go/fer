@@ -57,6 +57,8 @@ func TestPushPull(t *testing.T) {
 		transport := drivers[i]
 		t.Run("transport="+transport, func(t *testing.T) {
 
+			t.Parallel()
+
 			const (
 				N    = 5
 				tmpl = "data-%02d"
@@ -129,6 +131,8 @@ func TestReqRep(t *testing.T) {
 	for i := range drivers {
 		transport := drivers[i]
 		t.Run("transport="+transport, func(t *testing.T) {
+
+			t.Parallel()
 
 			const (
 				N    = 5
@@ -214,6 +218,8 @@ func TestPubSub(t *testing.T) {
 	for i := range drivers {
 		transport := drivers[i]
 		t.Run("transport="+transport, func(t *testing.T) {
+
+			t.Parallel()
 
 			const (
 				N    = 5

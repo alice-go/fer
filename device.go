@@ -16,6 +16,7 @@ import (
 
 	"github.com/sbinet-alice/fer/config"
 	"github.com/sbinet-alice/fer/mq"
+	"golang.org/x/sync/errgroup"
 )
 
 type channel struct {
@@ -328,6 +329,7 @@ func (dev *device) run(ctx context.Context) error {
 		}
 	}
 
+	var grp errgroup.Group
 	for _, chans := range dev.chans {
 		// dev.msg.Printf("--- init channels [%s]...\n", n)
 		for _, ch := range chans {
@@ -335,25 +337,19 @@ func (dev *device) run(ctx context.Context) error {
 			sck := ch.cfg.Sockets[0]
 			switch strings.ToLower(sck.Method) {
 			case "bind":
-				go func() {
-					err := ch.sck.Listen(sck.Address)
-					if err != nil {
-						dev.quit <- err
-					}
-				}()
+				grp.Go(func() error { return ch.sck.Listen(sck.Address) })
 			case "connect":
-				go func() {
-					err := ch.sck.Dial(sck.Address)
-					if err != nil {
-						dev.quit <- err
-					}
-				}()
+				grp.Go(func() error { return ch.sck.Dial(sck.Address) })
 			default:
-				go func() {
-					dev.quit <- fmt.Errorf("fer: invalid socket method (value=%q)", sck.Method)
-				}()
+				grp.Go(func() error {
+					return fmt.Errorf("fer: invalid socket method (value=%q)", sck.Method)
+				})
 			}
 		}
+	}
+	err := grp.Wait()
+	if err != nil {
+		return err
 	}
 
 	for _, chans := range dev.chans {

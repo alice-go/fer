@@ -6,6 +6,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/sbinet-alice/fer"
 	"github.com/sbinet-alice/fer/config"
@@ -35,7 +36,7 @@ func (dev *sampler) Run(ctl fer.Controler) error {
 	for {
 		select {
 		case dev.datac <- fer.Msg{Data: []byte("HELLO")}:
-			ctl.Printf("sent 'HELLO'\n")
+			ctl.Printf("sent 'HELLO' (%v)\n", time.Now())
 		case <-ctl.Done():
 			return nil
 		}

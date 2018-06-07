@@ -6,6 +6,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/sbinet-alice/fer"
 	"github.com/sbinet-alice/fer/config"
@@ -44,7 +45,7 @@ func (dev *processor) Run(ctl fer.Controler) error {
 		case data := <-dev.idatac:
 			// ctl.Printf("received: %q\n", string(data.Data))
 			out := append([]byte(nil), data.Data...)
-			out = append(out, []byte(" (modified by "+dev.cfg.Name()+")")...)
+			out = append(out, []byte(" (modified by "+dev.cfg.Name()+")"+time.Now().String())...)
 			dev.odatac <- fer.Msg{Data: out}
 		case <-ctl.Done():
 			return nil

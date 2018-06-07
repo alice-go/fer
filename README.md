@@ -29,13 +29,13 @@ Documentation is available on [godoc](https://godoc.org/github.com/sbinet-alice/
 
 ```sh
 ## terminal 1
-$> fer-ex-sink --id sink1 --mq-config ./example/cmd/testdata/ex2-sampler-processor-sink.json
+$> fer-ex-sink --id sink1 --mq-config ./_example/cmd/testdata/ex2-sampler-processor-sink.json
 
 ## terminal 2
-$> fer-ex-processor --id processor --mq-config ./example/cmd/testdata/ex2-sampler-processor-sink.json
+$> fer-ex-processor --id processor --mq-config ./_example/cmd/testdata/ex2-sampler-processor-sink.json
 
 ## terminal 3
-$> fer-ex-sampler --id sampler1 --mq-config ./example/cmd/testdata/ex2-sampler-processor-sink.json
+$> fer-ex-sampler --id sampler1 --mq-config ./_example/cmd/testdata/ex2-sampler-processor-sink.json
 ```
 
 This will run 3 devices, using the `ZeroMQ` transport.

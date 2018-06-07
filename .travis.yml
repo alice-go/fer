@@ -11,6 +11,9 @@ matrix:
  allow_failures:
    - go: master
 
+env:
+ - TAGS=""
+
 sudo: false
 
 notifications:
@@ -19,3 +22,9 @@ notifications:
       - binet@cern.ch
     on_success: change
     on_failure: always
+
+script:
+ - go get -d -t -v ./...
+ - go install -v $TAGS ./...
+ - go test $TAGS ./...
+ - go test $TAGS -race ./...

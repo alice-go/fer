@@ -311,21 +311,26 @@ func TestDeviceFSMFromStdin(t *testing.T) {
 				}
 				cfg.ID = "sampler1"
 
-				stdin := new(bytes.Buffer)
+				pr, pw, err := os.Pipe()
+				if err != nil {
+					t.Fatalf("could not create pipe: %v", err)
+				}
+				defer pr.Close()
+				defer pw.Close()
 				stdout := new(bytes.Buffer)
 
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
 
 				grp, ctx := errgroup.WithContext(ctx)
-				dev1, err := newDevice(ctx, cfg, &sampler{n: N}, stdin, stdout)
+				dev1, err := newDevice(ctx, cfg, &sampler{n: N}, pr, stdout)
 				if err != nil {
 					t.Fatalf("error creating device %q: %v\n", cfg.ID, err)
 				}
 				grp.Go(func() error { return dev1.run(ctx) })
 
 				for _, cmd := range cmds {
-					stdin.Write([]byte{cmd, '\n'})
+					pw.Write([]byte{cmd, '\n'})
 				}
 
 				err = grp.Wait()

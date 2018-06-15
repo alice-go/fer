@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/profile"
 	"github.com/sbinet-alice/fer"
 	"go-hep.org/x/hep/hbook"
 	"go-hep.org/x/hep/hplot"
@@ -34,8 +35,10 @@ import (
 const cookieName = "FER_WEB_SRV"
 
 var (
-	addr    = flag.String("addr", ":8080", "web server address")
-	timeout = flag.Duration("timeout", 20*time.Second, "timeout for fer-pods")
+	addr      = flag.String("addr", ":8080", "web server address")
+	timeout   = flag.Duration("timeout", 20*time.Second, "timeout for fer-pods")
+	transport = flag.String("transport", "zeromq", "transport medium to use")
+	doprof    = flag.Bool("cpu-prof", false, "enable CPU profiling")
 )
 
 type server struct {
@@ -47,6 +50,9 @@ type server struct {
 func main() {
 	flag.Parse()
 
+	if *doprof {
+		defer profile.Start(profile.CPUProfile).Stop()
+	}
 	srv := newServer()
 
 	http.HandleFunc("/", srv.wrap(srv.rootHandler))
@@ -183,7 +189,7 @@ func (srv *server) dataHandler(ws *websocket.Conn) {
 	}
 
 	lines := make([]string, 0, 30)
-	h := hbook.NewH1D(100, 0, 5)
+	h := hbook.NewH1D(100, 0, 500)
 	state := Data{}
 	for data := range datac {
 		if data.quit {
@@ -195,7 +201,7 @@ func (srv *server) dataHandler(ws *websocket.Conn) {
 			lines[1] = "[...]"
 		}
 		lines = append(lines, data.Lines)
-		h.Fill(float64(data.delta)*1e-9, 1)
+		h.Fill(float64(data.delta)*1e-3, 1)
 		state.Lines = strings.Join(lines, "<br>")
 		state.Plot = plotToF(h)
 
@@ -208,7 +214,8 @@ func (srv *server) dataHandler(ws *websocket.Conn) {
 
 func plotToF(h *hbook.H1D) string {
 	pl := hplot.New()
-	pl.X.Label.Text = "Time of Flight (s)"
+	pl.Title.Text = *transport
+	pl.X.Label.Text = "Time of Flight (us)"
 
 	hh := hplot.NewH1D(h)
 	hh.LineStyle.Color = color.RGBA{255, 0, 0, 255}
@@ -239,7 +246,7 @@ type Data struct {
 }
 
 func runHelloWorld(w io.Writer, r io.Reader, datac chan Data) {
-	cfg, err := getSPSConfig("nanomsg")
+	cfg, err := getSPSConfig(*transport)
 	if err != nil {
 		log.Printf("error: %v\n", err)
 		return

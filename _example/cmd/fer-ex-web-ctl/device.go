@@ -42,6 +42,7 @@ func (dev *sampler) Run(ctl fer.Controler) error {
 		select {
 		case dev.datac <- fer.Msg{Data: newToken("HELLO").Bytes()}:
 			dev.n++
+			time.Sleep(10 * time.Microsecond)
 		case <-ctl.Done():
 			return nil
 		case <-dev.quit:

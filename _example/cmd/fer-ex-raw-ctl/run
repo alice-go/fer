@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+set -x
+
+go build -v .
+
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=tcp -transport=zeromq
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=ipc -transport=zeromq
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=tcp -transport=nanomsg
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=ipc -transport=nanomsg
+

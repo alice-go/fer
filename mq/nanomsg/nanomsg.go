@@ -9,18 +9,18 @@ package nanomsg
 import (
 	"fmt"
 
-	"github.com/go-mangos/mangos"
-	"github.com/go-mangos/mangos/protocol/bus"
-	"github.com/go-mangos/mangos/protocol/pair"
-	"github.com/go-mangos/mangos/protocol/pub"
-	"github.com/go-mangos/mangos/protocol/pull"
-	"github.com/go-mangos/mangos/protocol/push"
-	"github.com/go-mangos/mangos/protocol/rep"
-	"github.com/go-mangos/mangos/protocol/req"
-	"github.com/go-mangos/mangos/protocol/sub"
-	"github.com/go-mangos/mangos/transport/ipc"
-	"github.com/go-mangos/mangos/transport/tcp"
 	"github.com/sbinet-alice/fer/mq"
+	"nanomsg.org/go-mangos"
+	"nanomsg.org/go-mangos/protocol/bus"
+	"nanomsg.org/go-mangos/protocol/pair"
+	"nanomsg.org/go-mangos/protocol/pub"
+	"nanomsg.org/go-mangos/protocol/pull"
+	"nanomsg.org/go-mangos/protocol/push"
+	"nanomsg.org/go-mangos/protocol/rep"
+	"nanomsg.org/go-mangos/protocol/req"
+	"nanomsg.org/go-mangos/protocol/sub"
+	"nanomsg.org/go-mangos/transport/ipc"
+	"nanomsg.org/go-mangos/transport/tcp"
 )
 
 type socket struct {

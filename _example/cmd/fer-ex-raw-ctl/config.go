@@ -7,7 +7,6 @@ package main
 import (
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 
 	"github.com/sbinet-alice/fer/config"
@@ -40,8 +39,6 @@ func getProtPorts() (string, string, error) {
 		return "tcp://localhost:" + port1, "tcp://localhost:" + port2, nil
 
 	case "ipc":
-		os.Remove("raw-ctl-p1")
-		os.Remove("raw-ctl-p2")
 		return "ipc://raw-ctl-p1", "ipc://raw-ctl-p2", nil
 	}
 	return "", "", fmt.Errorf("invalid protocol %q", *protocol)

@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"os"
 	"strconv"
 
 	"github.com/sbinet-alice/fer/config"
@@ -39,13 +40,83 @@ func getProtPorts() (string, string, error) {
 		return "tcp://localhost:" + port1, "tcp://localhost:" + port2, nil
 
 	case "ipc":
-		return "ipc://raw-ctl-p1", "ipc://raw-ctl-p2", nil
+		os.Remove("raw-ctl-p1-" + *transport)
+		os.Remove("raw-ctl-p2-" + *transport)
+		return "ipc://raw-ctl-p1-" + *transport, "ipc://raw-ctl-p2-" + *transport, nil
+	case "inproc":
+		return "inproc://raw-ctl-p1", "inproc://raw-ctl-p2", nil
 	}
 	return "", "", fmt.Errorf("invalid protocol %q", *protocol)
 }
 
 func getSPSConfig(transport string) (config.Config, error) {
 	var cfg config.Config
+
+	if transport == "czmq" && *protocol == "tcp" {
+		return config.Config{
+			Control:   "interactive",
+			Transport: transport,
+			Options: config.Options{
+				Devices: []config.Device{
+					{
+						ID: "sampler1",
+						Channels: []config.Channel{
+							{
+								Name: "data1",
+								Sockets: []config.Socket{
+									{
+										Type:    "push",
+										Method:  "bind",
+										Address: "tcp://*:5555",
+									},
+								},
+							},
+						},
+					},
+					{
+						Key: "processor",
+						Channels: []config.Channel{
+							{
+								Name: "data1",
+								Sockets: []config.Socket{
+									{
+										Type:    "pull",
+										Method:  "connect",
+										Address: "tcp://localhost:5555",
+									},
+								},
+							},
+							{
+								Name: "data2",
+								Sockets: []config.Socket{
+									{
+										Type:    "push",
+										Method:  "connect",
+										Address: "tcp://localhost:5556",
+									},
+								},
+							},
+						},
+					},
+					{
+						ID: "sink1",
+						Channels: []config.Channel{
+							{
+								Name: "data2",
+								Sockets: []config.Socket{
+									{
+										Type:    "pull",
+										Method:  "bind",
+										Address: "tcp://*:5556",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}, nil
+	}
 
 	port1, port2, err := getProtPorts()
 	if err != nil {

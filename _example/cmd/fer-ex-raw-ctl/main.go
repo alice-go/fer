@@ -29,6 +29,7 @@ var (
 	transport = flag.String("transport", "zeromq", "transport medium to use")
 	protocol  = flag.String("protocol", "tcp", "protocol to use for transport")
 	doprof    = flag.Bool("cpu-prof", false, "enable CPU profiling")
+	hmax      = flag.Float64("max", 200, "x-max for histogram")
 )
 
 func main() {
@@ -38,17 +39,20 @@ func main() {
 		defer profile.Start(profile.CPUProfile).Stop()
 	}
 
+	vs := make([]float64, 0, 100)
 	stdout := new(bytes.Buffer)
 	datac := make(chan Data, 100)
 	go runHelloWorld(stdout, os.Stdin, datac)
 
-	h := hbook.NewH1D(100, 0, 500)
+	h := hbook.NewH1D(100, 0, *hmax)
 loop:
 	for data := range datac {
 		if data.quit {
 			break loop
 		}
-		h.Fill(float64(data.delta)*1e-3, 1)
+		v := float64(data.delta) * 1e-3
+		h.Fill(v, 1)
+		vs = append(vs, v)
 	}
 
 	pl := hplot.New()
@@ -66,6 +70,17 @@ loop:
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	f, err := os.Create(fmt.Sprintf("tof-%s-%s.txt", *transport, *protocol))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	for _, v := range vs {
+		fmt.Fprintf(f, "%e\n", v)
+	}
+
 }
 
 type Data struct {

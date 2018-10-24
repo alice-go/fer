@@ -3,10 +3,20 @@
 set -e
 set -x
 
-go build -v .
+go build -v -tags=czmq .
 
+/bin/rm -rf ./raw-ctl-*
 /usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=tcp -transport=zeromq
 /usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=ipc -transport=zeromq
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=inproc -transport=zeromq
+
+/bin/rm -rf ./raw-ctl-p*
 /usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=tcp -transport=nanomsg
 /usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=ipc -transport=nanomsg
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=inproc -transport=nanomsg
 
+export GODEBUG=cgocheck=0
+/bin/rm -rf ./raw-ctl-p*
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=tcp -transport=czmq
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=ipc -transport=czmq
+/usr/bin/time -f "real=%e user=%U sys=%S CPU=%P MaxRSS=%M I/O=%I/%O" ./fer-ex-raw-ctl -protocol=inproc -transport=czmq

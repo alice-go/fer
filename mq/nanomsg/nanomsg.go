@@ -19,6 +19,7 @@ import (
 	"nanomsg.org/go-mangos/protocol/rep"
 	"nanomsg.org/go-mangos/protocol/req"
 	"nanomsg.org/go-mangos/protocol/sub"
+	"nanomsg.org/go-mangos/transport/inproc"
 	"nanomsg.org/go-mangos/transport/ipc"
 	"nanomsg.org/go-mangos/transport/tcp"
 )
@@ -72,6 +73,7 @@ func (driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 
 	sck.AddTransport(ipc.NewTransport())
 	sck.AddTransport(tcp.NewTransport())
+	sck.AddTransport(inproc.NewTransport())
 	return socket{Socket: sck, typ: typ}, err
 }
 

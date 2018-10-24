@@ -1,0 +1,9 @@
+main.stats{prot:"inproc", trans:"czmq", real:20.03, user:11.71, sys:9.8, cpu:107, maxrss:22992}
+main.stats{prot:"inproc", trans:"nanomsg", real:20.04, user:13.8, sys:7.34, cpu:105, maxrss:21492}
+main.stats{prot:"inproc", trans:"zeromq", real:20.04, user:17.47, sys:5.46, cpu:114, maxrss:21976}
+main.stats{prot:"ipc", trans:"czmq", real:20.02, user:10.75, sys:11.15, cpu:109, maxrss:31424}
+main.stats{prot:"ipc", trans:"nanomsg", real:20.02, user:10.57, sys:11.94, cpu:112, maxrss:21680}
+main.stats{prot:"ipc", trans:"zeromq", real:20.03, user:12.84, sys:10.8, cpu:118, maxrss:22176}
+main.stats{prot:"tcp", trans:"czmq", real:20.02, user:9.96, sys:12.51, cpu:112, maxrss:22648}
+main.stats{prot:"tcp", trans:"nanomsg", real:20.03, user:7.75, sys:12.54, cpu:101, maxrss:21868}
+main.stats{prot:"tcp", trans:"zeromq", real:20.02, user:9.85, sys:11.67, cpu:107, maxrss:22156}

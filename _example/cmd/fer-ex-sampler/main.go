@@ -22,7 +22,7 @@ func (dev *sampler) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *sampler) Init(ctl fer.Controler) error {
+func (dev *sampler) Init(ctl fer.Controller) error {
 	datac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -32,7 +32,7 @@ func (dev *sampler) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *sampler) Run(ctl fer.Controler) error {
+func (dev *sampler) Run(ctl fer.Controller) error {
 	for {
 		select {
 		case dev.datac <- fer.Msg{Data: []byte("HELLO")}:

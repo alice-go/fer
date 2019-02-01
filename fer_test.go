@@ -124,7 +124,7 @@ func (dev *sampler) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *sampler) Init(ctl Controler) error {
+func (dev *sampler) Init(ctl Controller) error {
 	datac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func (dev *sampler) Init(ctl Controler) error {
 	return nil
 }
 
-func (dev *sampler) Run(ctl Controler) error {
+func (dev *sampler) Run(ctl Controller) error {
 	i := 0
 	for {
 		select {
@@ -161,7 +161,7 @@ func (dev *processor) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *processor) Init(ctl Controler) error {
+func (dev *processor) Init(ctl Controller) error {
 	idatac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -177,7 +177,7 @@ func (dev *processor) Init(ctl Controler) error {
 	return nil
 }
 
-func (dev *processor) Run(ctl Controler) error {
+func (dev *processor) Run(ctl Controller) error {
 	i := 0
 	for {
 		select {
@@ -204,7 +204,7 @@ func (dev *sink) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *sink) Init(ctl Controler) error {
+func (dev *sink) Init(ctl Controller) error {
 	datac, err := ctl.Chan("data2", 0)
 	if err != nil {
 		return err
@@ -214,7 +214,7 @@ func (dev *sink) Init(ctl Controler) error {
 	return nil
 }
 
-func (dev *sink) Run(ctl Controler) error {
+func (dev *sink) Run(ctl Controller) error {
 	i := 0
 	for {
 		select {

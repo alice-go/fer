@@ -282,7 +282,7 @@ func (dev *device) Done() chan Cmd {
 	return dev.done
 }
 
-func (dev *device) isControler() {}
+func (dev *device) isController() {}
 
 func (dev *device) Fatalf(format string, v ...interface{}) {
 	dev.msg.Fatalf(format, v...)

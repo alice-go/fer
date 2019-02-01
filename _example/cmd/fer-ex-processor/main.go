@@ -23,7 +23,7 @@ func (dev *processor) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *processor) Init(ctl fer.Controler) error {
+func (dev *processor) Init(ctl fer.Controller) error {
 	idatac, err := ctl.Chan("data1", 0)
 	if err != nil {
 		return err
@@ -39,7 +39,7 @@ func (dev *processor) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *processor) Run(ctl fer.Controler) error {
+func (dev *processor) Run(ctl fer.Controller) error {
 	for {
 		select {
 		case data := <-dev.idatac:

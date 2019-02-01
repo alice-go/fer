@@ -21,7 +21,7 @@ func (dev *sink) Configure(cfg config.Device) error {
 	return nil
 }
 
-func (dev *sink) Init(ctl fer.Controler) error {
+func (dev *sink) Init(ctl fer.Controller) error {
 	datac, err := ctl.Chan("data2", 0)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func (dev *sink) Init(ctl fer.Controler) error {
 	return nil
 }
 
-func (dev *sink) Run(ctl fer.Controler) error {
+func (dev *sink) Run(ctl fer.Controller) error {
 	for {
 		select {
 		case data := <-dev.datac:

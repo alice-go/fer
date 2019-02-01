@@ -16,25 +16,25 @@
 //   }
 //
 // A device needs to implement the fer.Device interface:
-//  func (dev *myDevice) Run(ctl fer.Controler)   error { ... }
+//  func (dev *myDevice) Run(ctl fer.Controller)   error { ... }
 //
 // Optionnally, the following methods may be also implemented:
 //  func (dev *myDevice) Configure(cfg config.Device) error { ... }
-//  func (dev *myDevice) Init(ctl fer.Controler)  error { ... }
-//  func (dev *myDevice) Pause(ctl fer.Controler) error { ... }
-//  func (dev *myDevice) Reset(ctl fer.Controler) error { ... }
+//  func (dev *myDevice) Init(ctl fer.Controller)  error { ... }
+//  func (dev *myDevice) Pause(ctl fer.Controller) error { ... }
+//  func (dev *myDevice) Reset(ctl fer.Controller) error { ... }
 //
 // Typically, the Configure method is used to retrieve the configuration
 // associated with the client's device.
 // The Init method is used to retrieve the channels of input/output data messages.
 // The Run method is an infinite for-loop, selecting on these input/output data
 // messages.
-// This infinite for-loop will also NEED to listen for the Controler.Done()
+// This infinite for-loop will also NEED to listen for the Controller.Done()
 // channel to exit that for-loop.
 //
 // e.g.:
 //
-//  func (dev *myDevice) Init(ctl fer.Controler) error {
+//  func (dev *myDevice) Init(ctl fer.Controller) error {
 //      imsg, err := ctl.Chan("data-1", 0)
 //      omsg, err := ctl.Chan("data-2", 0)
 //      dev.imsg = imsg
@@ -42,7 +42,7 @@
 //      return nil
 //  }
 //
-//  func (dev *myDevice) Run(ctl fer.Controler) error {
+//  func (dev *myDevice) Run(ctl fer.Controller) error {
 //      for {
 //          select {
 //          case data := <-dev.imsg:
@@ -112,12 +112,12 @@ func RunDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, 
 // Devices are configured according to command-line flags and a JSON
 // configuration file.
 // Clients need to implement the Run method to receive and send data via
-// the Controler data channels.
+// the Controller data channels.
 type Device interface {
 	// Run is where the device's main activity happens.
-	// Run should loop forever, until the Controler.Done() channel says
+	// Run should loop forever, until the Controller.Done() channel says
 	// otherwise.
-	Run(ctl Controler) error
+	Run(ctl Controller) error
 }
 
 // DevConfigurer configures a fer device.
@@ -130,29 +130,29 @@ type DevConfigurer interface {
 type DevIniter interface {
 	// Init gives a chance to the device to initialize internal
 	// data structures, retrieve channels to input/output data.
-	Init(ctl Controler) error
+	Init(ctl Controller) error
 }
 
 // DevPauser pauses the execution of a fer device.
 type DevPauser interface {
 	// Pause pauses the device's execution.
-	Pause(ctl Controler) error
+	Pause(ctl Controller) error
 }
 
 // DevReseter resets a fer device.
 type DevReseter interface {
 	// Reset resets the device's internal state.
-	Reset(ctl Controler) error
+	Reset(ctl Controller) error
 }
 
-// Controler controls devices execution and gives a device access to input and
+// Controller controls devices execution and gives a device access to input and
 // output data channels.
-type Controler interface {
+type Controller interface {
 	Logger
 	Chan(name string, i int) (chan Msg, error)
 	Done() chan Cmd
 
-	isControler()
+	isController()
 }
 
 // Logger gives access to printf-like facilities

@@ -7,8 +7,8 @@ package main
 import (
 	"log"
 
-	"github.com/sbinet-alice/fer"
-	"github.com/sbinet-alice/fer/config"
+	"github.com/alice-go/fer"
+	"github.com/alice-go/fer/config"
 )
 
 type sink struct {

@@ -1,7 +1,7 @@
 # fer
 
-[![GoDoc](https://godoc.org/github.com/sbinet-alice/fer?status.svg)](https://godoc.org/github.com/sbinet-alice/fer)
-[![Build Status](https://travis-ci.org/sbinet-alice/fer.svg?branch=master)](https://travis-ci.org/sbinet-alice/fer)
+[![GoDoc](https://godoc.org/github.com/alice-go/fer?status.svg)](https://godoc.org/github.com/alice-go/fer)
+[![Build Status](https://travis-ci.org/alice-go/fer.svg?branch=master)](https://travis-ci.org/alice-go/fer)
 [![DOI](https://zenodo.org/badge/73269900.svg)](https://zenodo.org/badge/latestdoi/73269900)
 
 `fer` is a simple reimplementation of [FairMQ](https://github.com/FairRootGroup/FairMQ) in [Go](https://golang.org).
@@ -15,14 +15,14 @@
 `fer` is installable _via_ `go` `get`:
 
 ```sh
-$> go get github.com/sbinet-alice/fer/...
+$> go get github.com/alice-go/fer/...
 ```
 
 *NOTE:* you need at least `go1.7`.
 
 ## Documentation
 
-Documentation is available on [godoc](https://godoc.org/github.com/sbinet-alice/fer).
+Documentation is available on [godoc](https://godoc.org/github.com/alice-go/fer).
 
 ## Examples
 

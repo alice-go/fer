@@ -14,8 +14,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sbinet-alice/fer/config"
-	"github.com/sbinet-alice/fer/mq"
+	"github.com/alice-go/fer/config"
+	"github.com/alice-go/fer/mq"
 	"golang.org/x/sync/errgroup"
 )
 

@@ -5,5 +5,5 @@
 package fer
 
 import (
-	_ "github.com/sbinet-alice/fer/mq/nanomsg" // load nanomsg plugin
+	_ "github.com/alice-go/fer/mq/nanomsg" // load nanomsg plugin
 )

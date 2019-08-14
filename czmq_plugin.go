@@ -7,5 +7,5 @@
 package fer
 
 import (
-	_ "github.com/sbinet-alice/fer/mq/czmq" // load C-bindings zeromq plugin
+	_ "github.com/alice-go/fer/mq/czmq" // load C-bindings zeromq plugin
 )

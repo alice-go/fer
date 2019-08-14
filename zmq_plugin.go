@@ -5,5 +5,5 @@
 package fer
 
 import (
-	_ "github.com/sbinet-alice/fer/mq/zeromq" // load zeromq plugin
+	_ "github.com/alice-go/fer/mq/zeromq" // load zeromq plugin
 )

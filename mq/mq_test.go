@@ -11,9 +11,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/sbinet-alice/fer/mq"
-	_ "github.com/sbinet-alice/fer/mq/nanomsg"
-	_ "github.com/sbinet-alice/fer/mq/zeromq"
+	"github.com/alice-go/fer/mq"
+	_ "github.com/alice-go/fer/mq/nanomsg"
+	_ "github.com/alice-go/fer/mq/zeromq"
 )
 
 func TestOpen(t *testing.T) {

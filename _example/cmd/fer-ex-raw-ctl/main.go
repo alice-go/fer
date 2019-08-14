@@ -16,8 +16,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/alice-go/fer"
 	"github.com/pkg/profile"
-	"github.com/sbinet-alice/fer"
 	"go-hep.org/x/hep/hbook"
 	"go-hep.org/x/hep/hplot"
 	"gonum.org/v1/plot/plotter"

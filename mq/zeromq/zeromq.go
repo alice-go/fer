@@ -4,15 +4,15 @@
 
 // Package zeromq implements the mq.Driver interface and allows
 // to use mq.Sockets via ZeroMQ sockets.
-package zeromq
+package zeromq // import "github.com/alice-go/fer/mq/zeromq"
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/alice-go/fer/mq"
 	"github.com/go-zeromq/zmq4"
-	"github.com/sbinet-alice/fer/mq"
 )
 
 type socket struct {

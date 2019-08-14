@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sbinet-alice/fer/config"
+	"github.com/alice-go/fer/config"
 	"golang.org/x/sync/errgroup"
 )
 

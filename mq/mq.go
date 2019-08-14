@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Package mq provides interfaces for message-queue sockets.
-package mq
+package mq // import "github.com/alice-go/fer/mq"
 
 import (
 	"fmt"

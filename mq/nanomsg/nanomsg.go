@@ -4,12 +4,12 @@
 
 // Package nanomsg implements the mq.Driver interface and allows
 // to use mq.Sockets via nanomsg sockets.
-package nanomsg
+package nanomsg // import "github.com/alice-go/fer/mq/nanomsg"
 
 import (
 	"fmt"
 
-	"github.com/sbinet-alice/fer/mq"
+	"github.com/alice-go/fer/mq"
 	"nanomsg.org/go-mangos"
 	"nanomsg.org/go-mangos/protocol/bus"
 	"nanomsg.org/go-mangos/protocol/pair"

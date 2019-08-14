@@ -7,8 +7,8 @@
 //
 // A client device might look like so:
 //
-//   import "github.com/sbinet-alice/fer"
-//   import "github.com/sbinet-alice/fer/config"
+//   import "github.com/alice-go/fer"
+//   import "github.com/alice-go/fer/config"
 //   type myDevice struct {
 //       cfg  config.Device
 //       imsg chan fer.Msg
@@ -78,7 +78,7 @@
 //    -transport string
 //      	transport mechanism to use (zeromq, nanomsg, go-chan, ...) (default "zeromq")
 //  $> ./my-device --id my-id --mq-config ./path/to/config.json
-package fer
+package fer // import "github.com/alice-go/fer"
 
 import (
 	"context"
@@ -86,7 +86,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/sbinet-alice/fer/config"
+	"github.com/alice-go/fer/config"
 )
 
 // Main configures and runs a device's execution, managing its state.

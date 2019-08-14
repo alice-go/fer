@@ -9,7 +9,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/sbinet-alice/fer/config"
+	"github.com/alice-go/fer/config"
 )
 
 func getTCPPort() (string, error) {

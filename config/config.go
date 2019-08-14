@@ -4,7 +4,7 @@
 
 // Package config implements command-line flag parsing and fer devices
 // configuration from JSON files.
-package config
+package config // import "github.com/alice-go/fer/config"
 
 import (
 	"encoding/json"

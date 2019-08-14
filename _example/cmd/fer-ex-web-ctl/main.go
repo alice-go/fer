@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/alice-go/fer"
 	"github.com/pkg/profile"
-	"github.com/sbinet-alice/fer"
 	"go-hep.org/x/hep/hbook"
 	"go-hep.org/x/hep/hplot"
 	"golang.org/x/net/websocket"

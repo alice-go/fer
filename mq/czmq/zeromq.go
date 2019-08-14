@@ -6,7 +6,7 @@
 
 // Package czmq implements the mq.Driver interface and allows
 // to use mq.Sockets via ZeroMQ sockets.
-package czmq
+package czmq // import "github.com/alice-go/fer/mq/czmq"
 
 // #cgo pkg-config: libzmq
 // #include "zmq.h"
@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	"github.com/sbinet-alice/fer/mq"
+	"github.com/alice-go/fer/mq"
 )
 
 func getError(v C.int) error {

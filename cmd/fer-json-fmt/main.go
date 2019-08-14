@@ -13,7 +13,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sbinet-alice/fer/config"
+	"github.com/alice-go/fer/config"
 )
 
 func main() {

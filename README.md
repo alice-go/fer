@@ -1,7 +1,9 @@
 # fer
 
+[![GitHub release](https://img.shields.io/github/release/alice-go/fer.svg)](https://github.com/alice-go/fer/releases)
 [![GoDoc](https://godoc.org/github.com/alice-go/fer?status.svg)](https://godoc.org/github.com/alice-go/fer)
 [![Build Status](https://travis-ci.org/alice-go/fer.svg?branch=master)](https://travis-ci.org/alice-go/fer)
+[![codecov](https://codecov.io/gh/alice-go/fer/branch/master/graph/badge.svg)](https://codecov.io/gh/alice-go/fer)
 [![DOI](https://zenodo.org/badge/73269900.svg)](https://zenodo.org/badge/latestdoi/73269900)
 
 `fer` is a simple reimplementation of [FairMQ](https://github.com/FairRootGroup/FairMQ) in [Go](https://golang.org).

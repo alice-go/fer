@@ -1,30 +1,52 @@
 language: go
-go:
-  - 1.12.x
-  - 1.11.x
-  - 1.10.x
-  - master
+go_import_path: github.com/alice-go/fer
 os:
   - linux
-matrix:
- fast_finish: true
- allow_failures:
-   - go: master
 
 env:
  - TAGS=""
 
-sudo: false
+cache:
+ directories:
+   - $HOME/.cache/go-build
+   - $HOME/gopath/pkg/mod
+
+git:
+ depth: 10
+
+matrix:
+ fast_finish: true
+ include:
+   - go: 1.12.x
+     env:
+       - TAGS=""
+       - COVERAGE="-coverpkg=github.com/alice-go/fer/..."
+   - go: 1.11.x
+     env:
+       - TAGS=""
+   - go: 1.10.x
+     env:
+       - TAGS=""
+   - go: master
+     env:
+       - TAGS=""
+       - COVERAGE="-race"
+       - GOPROXY="https://proxy.golang.org"
+       - GO111MODULE="on"
+
+sudo: required
 
 notifications:
   email:
     recipients:
       - binet@cern.ch
-    on_success: change
+    on_success: always
     on_failure: always
 
 script:
  - go get -d -t -v ./...
  - go install -v $TAGS ./...
- - go test $TAGS ./...
- - go test $TAGS -race ./...
+ - go run ./ci/run-tests.go $TAGS $COVERAGE
+
+after_success:
+ - bash <(curl -s https://codecov.io/bash)

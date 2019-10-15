@@ -6,9 +6,10 @@
 package mq // import "github.com/alice-go/fer/mq"
 
 import (
-	"fmt"
 	"strings"
 	"sync"
+
+	"golang.org/x/xerrors"
 )
 
 // Socket is the main access handle that clients use to access the Fer system.
@@ -123,7 +124,7 @@ func SocketTypeFrom(name string) SocketType {
 	case "bus":
 		return Bus
 	}
-	panic(fmt.Errorf("fer: invalid socket type name (value=%q)", name))
+	panic(xerrors.Errorf("fer: invalid socket type name (value=%q)", name))
 }
 
 var drivers struct {
@@ -136,7 +137,7 @@ func Register(name string, drv Driver) {
 	drivers.Lock()
 	defer drivers.Unlock()
 	if _, dup := drivers.db[name]; dup {
-		panic(fmt.Errorf("fer: driver with name %q already registered", name))
+		panic(xerrors.Errorf("fer: driver with name %q already registered", name))
 	}
 	drivers.db[name] = drv
 }
@@ -151,7 +152,7 @@ func Open(name string) (Driver, error) {
 	defer drivers.RUnlock()
 	drv, ok := drivers.db[name]
 	if !ok {
-		return nil, fmt.Errorf("fer: no such driver %q", name)
+		return nil, xerrors.Errorf("fer: no such driver %q", name)
 	}
 	return drv, nil
 }

@@ -8,11 +8,11 @@ package zeromq // import "github.com/alice-go/fer/mq/zeromq"
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/alice-go/fer/mq"
 	"github.com/go-zeromq/zmq4"
+	"golang.org/x/xerrors"
 )
 
 type socket struct {
@@ -75,13 +75,13 @@ func (drv driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 		sck.zmq = zmq4.NewSub(ctx)
 
 	case mq.XSub:
-		return nil, fmt.Errorf("mq/zeromq: mq.XSub not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.XSub not implemented")
 
 	case mq.Pub:
 		sck.zmq = zmq4.NewPub(ctx)
 
 	case mq.XPub:
-		return nil, fmt.Errorf("mq/zeromq: mq.XPub not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.XPub not implemented")
 
 	case mq.Push:
 		sck.zmq = zmq4.NewPush(ctx)
@@ -93,22 +93,22 @@ func (drv driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 		sck.zmq = zmq4.NewReq(ctx)
 
 	case mq.Dealer:
-		return nil, fmt.Errorf("mq/zeromq: mq.Dealer not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.Dealer not implemented")
 
 	case mq.Rep:
 		sck.zmq = zmq4.NewRep(ctx)
 
 	case mq.Router:
-		return nil, fmt.Errorf("mq/zeromq: mq.Router not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.Router not implemented")
 
 	case mq.Pair:
-		return nil, fmt.Errorf("mq/zeromq: mq.Pair not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.Pair not implemented")
 
 	case mq.Bus:
-		return nil, fmt.Errorf("mq/zeromq: mq.Bus not implemented")
+		return nil, xerrors.Errorf("mq/zeromq: mq.Bus not implemented")
 
 	default:
-		return nil, fmt.Errorf("mq/zeromq: invalid socket type %v (%d)", typ, int(typ))
+		return nil, xerrors.Errorf("mq/zeromq: invalid socket type %v (%d)", typ, int(typ))
 	}
 
 	switch typ {

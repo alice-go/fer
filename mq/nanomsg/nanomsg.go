@@ -7,9 +7,8 @@
 package nanomsg // import "github.com/alice-go/fer/mq/nanomsg"
 
 import (
-	"fmt"
-
 	"github.com/alice-go/fer/mq"
+	"golang.org/x/xerrors"
 	"nanomsg.org/go-mangos"
 	"nanomsg.org/go-mangos/protocol/bus"
 	"nanomsg.org/go-mangos/protocol/pair"
@@ -64,7 +63,7 @@ func (driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 	case mq.Bus:
 		sck, err = bus.NewSocket()
 	default:
-		return nil, fmt.Errorf("fer/nanomsg: invalid socket type %v (%d)", typ, int(typ))
+		return nil, xerrors.Errorf("fer/nanomsg: invalid socket type %v (%d)", typ, int(typ))
 	}
 
 	if err != nil {

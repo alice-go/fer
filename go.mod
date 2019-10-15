@@ -8,6 +8,6 @@ require (
 	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e
-	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898 // indirect
+	golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
 	nanomsg.org/go-mangos v1.4.0
 )

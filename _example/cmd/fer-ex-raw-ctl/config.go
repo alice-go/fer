@@ -5,12 +5,12 @@
 package main
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strconv"
 
 	"github.com/alice-go/fer/config"
+	"golang.org/x/xerrors"
 )
 
 func getTCPPort() (string, error) {
@@ -31,11 +31,11 @@ func getProtPorts() (string, string, error) {
 	case "tcp":
 		port1, err := getTCPPort()
 		if err != nil {
-			return "", "", fmt.Errorf("error getting free TCP port: %v\n", err)
+			return "", "", xerrors.Errorf("error getting free TCP port: %w", err)
 		}
 		port2, err := getTCPPort()
 		if err != nil {
-			return "", "", fmt.Errorf("error getting free TCP port: %v\n", err)
+			return "", "", xerrors.Errorf("error getting free TCP port: %w", err)
 		}
 		return "tcp://localhost:" + port1, "tcp://localhost:" + port2, nil
 
@@ -46,7 +46,7 @@ func getProtPorts() (string, string, error) {
 	case "inproc":
 		return "inproc://raw-ctl-p1", "inproc://raw-ctl-p2", nil
 	}
-	return "", "", fmt.Errorf("invalid protocol %q", *protocol)
+	return "", "", xerrors.Errorf("invalid protocol %q", *protocol)
 }
 
 func getSPSConfig(transport string) (config.Config, error) {

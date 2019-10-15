@@ -7,7 +7,6 @@ package fer
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -17,6 +16,7 @@ import (
 	"github.com/alice-go/fer/config"
 	"github.com/alice-go/fer/mq"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 type channel struct {
@@ -137,7 +137,7 @@ func newDevice(ctx context.Context, cfg config.Config, udev Device, r io.Reader,
 	}
 	dcfg, ok := cfg.Options.Device(cfg.ID)
 	if !ok {
-		return nil, fmt.Errorf("fer: no such device %q", cfg.ID)
+		return nil, xerrors.Errorf("fer: no such device %q", cfg.ID)
 	}
 
 	if w == nil {
@@ -213,7 +213,7 @@ loop:
 				}
 				break loop
 			default:
-				panic(fmt.Errorf("fer: invalid cmd value (command=%d)", int(cmd)))
+				panic(xerrors.Errorf("fer: invalid cmd value (command=%d)", int(cmd)))
 			}
 		}
 	}
@@ -273,7 +273,7 @@ func (dev *device) input(ctx context.Context, r io.Reader) {
 func (dev *device) Chan(name string, i int) (chan Msg, error) {
 	msg, ok := dev.msgs[msgAddr{name, i}]
 	if !ok {
-		return nil, fmt.Errorf("fer: no such channel (name=%q index=%d)", name, i)
+		return nil, xerrors.Errorf("fer: no such channel (name=%q index=%d)", name, i)
 	}
 	return msg, nil
 }
@@ -342,7 +342,7 @@ func (dev *device) run(ctx context.Context) error {
 				grp.Go(func() error { return ch.sck.Dial(sck.Address) })
 			default:
 				grp.Go(func() error {
-					return fmt.Errorf("fer: invalid socket method (value=%q)", sck.Method)
+					return xerrors.Errorf("fer: invalid socket method (value=%q)", sck.Method)
 				})
 			}
 		}

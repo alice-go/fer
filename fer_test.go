@@ -20,6 +20,7 @@ import (
 
 	"github.com/alice-go/fer/config"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/xerrors"
 )
 
 var testDrivers = []string{"zeromq", "nanomsg"}
@@ -360,11 +361,11 @@ func getSPSConfig(transport string) (config.Config, error) {
 
 	port1, err := getTCPPort()
 	if err != nil {
-		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
+		return cfg, xerrors.Errorf("error getting free TCP port: %w", err)
 	}
 	port2, err := getTCPPort()
 	if err != nil {
-		return cfg, fmt.Errorf("error getting free TCP port: %v\n", err)
+		return cfg, xerrors.Errorf("error getting free TCP port: %w", err)
 	}
 
 	cfg = config.Config{

@@ -82,11 +82,11 @@ package fer // import "github.com/alice-go/fer"
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 
 	"github.com/alice-go/fer/config"
+	"golang.org/x/xerrors"
 )
 
 // Main configures and runs a device's execution, managing its state.
@@ -212,7 +212,7 @@ func (cmd Cmd) String() string {
 	case CmdError:
 		return "ERROR_FOUND"
 	}
-	panic(fmt.Errorf("fer: invalid Cmd value (command=%d)", int(cmd)))
+	panic(xerrors.Errorf("fer: invalid Cmd value (command=%d)", int(cmd)))
 }
 
 func runDevice(ctx context.Context, cfg config.Config, dev Device, r io.Reader, w io.Writer) error {

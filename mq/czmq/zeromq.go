@@ -15,10 +15,10 @@ package czmq // import "github.com/alice-go/fer/mq/czmq"
 import "C"
 
 import (
-	"fmt"
 	"unsafe"
 
 	"github.com/alice-go/fer/mq"
+	"golang.org/x/xerrors"
 )
 
 func getError(v C.int) error {
@@ -27,7 +27,7 @@ func getError(v C.int) error {
 	}
 	id := C.zmq_errno()
 	msg := C.zmq_strerror(id)
-	return fmt.Errorf(C.GoString(msg))
+	return xerrors.Errorf(C.GoString(msg))
 }
 
 type socket struct {
@@ -137,10 +137,10 @@ func (drv *driver) NewSocket(typ mq.SocketType) (mq.Socket, error) {
 		ctype = C.ZMQ_PAIR
 
 	case mq.Bus:
-		return nil, fmt.Errorf("mq/czmq: fer.Bus not implemented")
+		return nil, xerrors.Errorf("mq/czmq: fer.Bus not implemented")
 
 	default:
-		return nil, fmt.Errorf("mq/czmq: invalid socket type %v (%d)", typ, int(typ))
+		return nil, xerrors.Errorf("mq/czmq: invalid socket type %v (%d)", typ, int(typ))
 	}
 
 	sck.c = C.zmq_socket(drv.ctx, ctype)
